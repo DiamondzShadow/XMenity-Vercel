@@ -300,3 +300,24 @@ model ApiKey {
   
   @@map("api_keys")
 }
+
+model WalletXBinding {
+  id               String    @id @default(cuid())
+  platformUserId   String
+  platformUsername String
+  walletAddress    String
+  dateLinked       DateTime  @default(now())
+  minted          Boolean   @default(false)
+  lastMintAt      DateTime?
+  extraMetadata   Json      @default("{}")
+  isActive        Boolean   @default(true)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@unique([platformUserId, walletAddress])
+  @@index([walletAddress])
+  @@index([platformUserId])
+  @@index([minted])
+  @@map("wallet_x_bindings")
+}
