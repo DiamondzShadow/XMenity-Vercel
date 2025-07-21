@@ -362,6 +362,195 @@ export class ThirdwebService {
   }
 
   /**
+   * Mint tokens using factory contract's mintTo function
+   */
+  async mintToFactory(
+    factoryAddress: string,
+    recipientAddress: string,
+    amount: string,
+    signer: ethers.Signer
+  ): Promise<string> {
+    try {
+      const sdk = await this.getSDK(signer);
+      const factory = await sdk.getContract(factoryAddress);
+      
+      // Call factory's mintTo function
+      const tx = await factory.call("mintTo", [
+        recipientAddress,
+        ethers.utils.parseEther(amount) // Convert to Wei (18 decimals)
+      ]);
+      
+      console.log("Factory mint transaction:", tx.receipt.transactionHash);
+      return tx.receipt.transactionHash;
+    } catch (error) {
+      console.error("Error minting via factory:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update contract metadata URI
+   */
+  async updateContractURI(
+    contractAddress: string,
+    metadataUri: string,
+    signer: ethers.Signer
+  ): Promise<string> {
+    try {
+      const sdk = await this.getSDK(signer);
+      const contract = await sdk.getContract(contractAddress);
+      
+      // Call setContractURI function
+      const tx = await contract.call("setContractURI", [metadataUri]);
+      
+      console.log("Contract URI updated:", tx.receipt.transactionHash);
+      return tx.receipt.transactionHash;
+    } catch (error) {
+      console.error("Error updating contract URI:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Upload metadata to IPFS via Thirdweb
+   */
+  async uploadToIPFS(metadata: any): Promise<string> {
+    try {
+      const sdk = await this.getSDK();
+      const storage = sdk.storage;
+      
+      const uri = await storage.upload(metadata);
+      console.log("Metadata uploaded to IPFS:", uri);
+      return uri;
+    } catch (error) {
+      console.error("Error uploading to IPFS:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Batch mint to multiple addresses
+   */
+  async batchMintFactory(
+    factoryAddress: string,
+    recipients: Array<{ address: string; amount: string }>,
+    signer: ethers.Signer
+  ): Promise<string[]> {
+    try {
+      const sdk = await this.getSDK(signer);
+      const factory = await sdk.getContract(factoryAddress);
+      
+      const addresses = recipients.map(r => r.address);
+      const amounts = recipients.map(r => ethers.utils.parseEther(r.amount));
+      
+      // Call batch mint function (assuming your factory has this)
+      const tx = await factory.call("batchMintTo", [addresses, amounts]);
+      
+      console.log("Batch mint transaction:", tx.receipt.transactionHash);
+      return [tx.receipt.transactionHash];
+    } catch (error) {
+      console.error("Error in batch mint:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get factory contract info
+   */
+  async getFactoryInfo(factoryAddress: string) {
+    try {
+      const sdk = await this.getSDK();
+      const factory = await sdk.getContract(factoryAddress);
+      
+      const [owner, totalTokens, deploymentFee] = await Promise.all([
+        factory.call("owner").catch(() => null),
+        factory.call("totalTokensCreated").catch(() => "0"),
+        factory.call("deploymentFee").catch(() => "0")
+      ]);
+      
+      return {
+        address: factoryAddress,
+        owner,
+        totalTokens: totalTokens.toString(),
+        deploymentFee: ethers.utils.formatEther(deploymentFee || "0"),
+      };
+    } catch (error) {
+      console.error("Error getting factory info:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Calculate gas estimate for mint operation
+   */
+  async estimateMintGas(
+    tokenAddress: string,
+    recipientAddress: string,
+    amount: string,
+    signer: ethers.Signer
+  ): Promise<string> {
+    try {
+      const sdk = await this.getSDK(signer);
+      const tokenContract = await sdk.getContract(tokenAddress);
+      
+      const gasEstimate = await tokenContract.estimator.estimateGas(
+        "mint",
+        [recipientAddress, ethers.utils.parseEther(amount)]
+      );
+      
+      return gasEstimate.toString();
+    } catch (error) {
+      console.error("Error estimating gas:", error);
+      return "100000"; // Default fallback
+    }
+  }
+
+  /**
+   * Check if address has minting permissions
+   */
+  async canMint(tokenAddress: string, minterAddress: string): Promise<boolean> {
+    try {
+      const sdk = await this.getSDK();
+      const tokenContract = await sdk.getContract(tokenAddress);
+      
+      // Check if address has MINTER_ROLE (if using AccessControl)
+      const hasRole = await tokenContract.call("hasRole", [
+        ethers.utils.keccak256(ethers.utils.toUtf8Bytes("MINTER_ROLE")),
+        minterAddress
+      ]).catch(() => false);
+      
+      return hasRole;
+    } catch (error) {
+      console.error("Error checking mint permissions:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Get all tokens created by a specific creator
+   */
+  async getCreatorTokens(creatorAddress: string): Promise<string[]> {
+    try {
+      const sdk = await this.getSDK();
+      const factoryAddress = process.env.NEXT_PUBLIC_SOCIAL_TOKEN_FACTORY_ADDRESS;
+      
+      if (!factoryAddress) {
+        throw new Error("Factory address not configured");
+      }
+
+      const factory = await sdk.getContract(factoryAddress);
+      
+      // Get tokens created by this creator (assuming factory tracks this)
+      const tokens = await factory.call("getCreatorTokens", [creatorAddress]);
+      
+      return tokens;
+    } catch (error) {
+      console.error("Error getting creator tokens:", error);
+      return [];
+    }
+  }
+
+  /**
    * Get network information
    */
   getNetworkInfo() {

@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "name": "social-token-oracle",
+  "builds": [
+    {
+      "src": "oracle-service.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/oracle-service.js"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "functions": {
+    "oracle-service.js": {
+      "maxDuration": 30
+    }
+  },
+  "regions": ["iad1"],
+  "rewrites": [
+    {
+      "source": "/health",
+      "destination": "/api/health"
+    },
+    {
+      "source": "/webhook/:path*",
+      "destination": "/api/webhook/:path*"
+    }
+  ]
+}
