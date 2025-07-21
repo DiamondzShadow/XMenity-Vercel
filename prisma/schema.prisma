@@ -1,0 +1,302 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String   @id @default(cuid())
+  email             String?  @unique
+  walletAddress     String   @unique
+  nonce             String?
+  
+  // Social Media Information
+  twitterId         String?  @unique
+  twitterUsername   String?
+  twitterHandle     String?
+  twitterAvatar     String?
+  twitterFollowers  Int?     @default(0)
+  twitterVerified   Boolean  @default(false)
+  
+  // InsightIQ Data
+  insightIqId       String?  @unique
+  insightIqVerified Boolean  @default(false)
+  influenceScore    Float?
+  engagementRate    Float?
+  
+  // Profile Information
+  displayName       String?
+  bio               String?
+  profileImage      String?
+  
+  // Account Status
+  isActive          Boolean  @default(true)
+  isVerified        Boolean  @default(false)
+  verificationLevel String   @default("none") // none, basic, verified, premium
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  lastLoginAt       DateTime?
+  
+  // Relations
+  createdTokens     Token[]  @relation("TokenCreator")
+  tokenHoldings     TokenHolding[]
+  transactions      Transaction[]
+  rewards           Reward[]
+  milestones        Milestone[]
+  notifications     Notification[]
+  activities        Activity[]
+  
+  @@map("users")
+}
+
+model Token {
+  id                String   @id @default(cuid())
+  
+  // Token Information
+  name              String
+  symbol            String   @unique
+  description       String?
+  logoUrl           String?
+  
+  // Contract Information
+  contractAddress   String   @unique
+  chainId           Int      @default(42161) // Arbitrum
+  deploymentTxHash  String?
+  
+  // Token Economics
+  totalSupply       BigInt   @default(0)
+  currentSupply     BigInt   @default(0)
+  maxSupply         BigInt?
+  mintingRule       String   // "per_follower", "milestone", "manual"
+  mintAmount        BigInt   @default(1)
+  
+  // Creator Information
+  creatorId         String
+  creator           User     @relation("TokenCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  
+  // Token Status
+  isActive          Boolean  @default(true)
+  isPublic          Boolean  @default(true)
+  launchDate        DateTime @default(now())
+  
+  // Metrics
+  holderCount       Int      @default(0)
+  transactionCount  Int      @default(0)
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relations
+  holdings          TokenHolding[]
+  transactions      Transaction[]
+  milestones        Milestone[]
+  rewards           Reward[]
+  activities        Activity[]
+  
+  @@map("tokens")
+}
+
+model TokenHolding {
+  id        String   @id @default(cuid())
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  tokenId   String
+  token     Token    @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  
+  balance   BigInt   @default(0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([userId, tokenId])
+  @@map("token_holdings")
+}
+
+model Transaction {
+  id              String   @id @default(cuid())
+  
+  // Transaction Information
+  txHash          String   @unique
+  blockNumber     BigInt?
+  blockTimestamp  DateTime?
+  
+  // Token Information
+  tokenId         String
+  token           Token    @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  
+  // User Information
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Transaction Details
+  type            String   // "mint", "burn", "transfer", "reward"
+  amount          BigInt
+  fromAddress     String?
+  toAddress       String?
+  
+  // Metadata
+  reason          String?  // "new_follower", "milestone", "engagement_reward"
+  metadata        Json?
+  
+  // Status
+  status          String   @default("pending") // pending, confirmed, failed
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("transactions")
+}
+
+model Milestone {
+  id              String   @id @default(cuid())
+  
+  // Milestone Information
+  title           String
+  description     String?
+  type            String   // "followers", "posts", "engagement", "custom"
+  target          BigInt
+  current         BigInt   @default(0)
+  
+  // Reward Information
+  rewardAmount    BigInt
+  rewardType      String   @default("token") // token, nft, custom
+  
+  // Token Information
+  tokenId         String
+  token           Token    @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  
+  // Creator Information
+  creatorId       String
+  creator         User     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  
+  // Status
+  isCompleted     Boolean  @default(false)
+  completedAt     DateTime?
+  isActive        Boolean  @default(true)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("milestones")
+}
+
+model Reward {
+  id              String   @id @default(cuid())
+  
+  // Reward Information
+  type            String   // "engagement", "milestone", "referral", "loyalty"
+  amount          BigInt
+  description     String?
+  
+  // Token Information
+  tokenId         String
+  token           Token    @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  
+  // User Information
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Status
+  status          String   @default("pending") // pending, distributed, failed
+  distributedAt   DateTime?
+  txHash          String?
+  
+  // Metadata
+  metadata        Json?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("rewards")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type      String   // "reward", "milestone", "token_created", "system"
+  title     String
+  message   String
+  data      Json?
+  
+  isRead    Boolean  @default(false)
+  readAt    DateTime?
+  
+  createdAt DateTime @default(now())
+  
+  @@map("notifications")
+}
+
+model Activity {
+  id          String   @id @default(cuid())
+  
+  // Activity Information
+  type        String   // "token_created", "token_minted", "milestone_reached", "reward_distributed"
+  description String
+  
+  // User Information
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Token Information
+  tokenId     String?
+  token       Token?   @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  metadata    Json?
+  
+  createdAt   DateTime @default(now())
+  
+  @@map("activities")
+}
+
+model SystemSettings {
+  id        String   @id @default(cuid())
+  
+  key       String   @unique
+  value     String
+  type      String   @default("string") // string, number, boolean, json
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("system_settings")
+}
+
+model ApiKey {
+  id        String   @id @default(cuid())
+  
+  name      String
+  key       String   @unique
+  hashedKey String
+  
+  // Permissions
+  permissions Json?
+  
+  // Rate Limiting
+  rateLimit   Int?    @default(100)
+  ratePeriod  Int?    @default(3600) // seconds
+  
+  // Status
+  isActive    Boolean @default(true)
+  lastUsedAt  DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  expiresAt   DateTime?
+  
+  @@map("api_keys")
+}
