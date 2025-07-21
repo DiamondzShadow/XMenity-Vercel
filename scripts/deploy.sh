@@ -45,10 +45,14 @@ if [ ! -d ".git" ]; then
     print_success "Git repository initialized"
 fi
 
-# Check if remote exists
-if ! git remote get-url origin &> /dev/null; then
+# Check if remote exists and update to correct repo
+if git remote get-url origin &> /dev/null; then
+    print_status "Updating GitHub remote to correct repository..."
+    git remote set-url origin https://github.com/DiamondzShadow/XMenity-Vercel.git
+    print_success "GitHub remote updated to XMenity-Vercel"
+else
     print_status "Adding GitHub remote..."
-    git remote add origin https://github.com/DiamondzShadow/XMenity-Tube.git
+    git remote add origin https://github.com/DiamondzShadow/XMenity-Vercel.git
     print_success "GitHub remote added"
 fi
 
@@ -86,18 +90,18 @@ else
 - Add comprehensive environment configuration
 - Create wallet connection and authentication components
 - Add production-ready Next.js configuration
-- Add Firebase integration for additional services
+- Add Firebase integration for diamond-zminter project
 - Implement health checks and monitoring
 - Add deployment automation scripts
 
 This upgrade transforms the repository into an enterprise-grade
-social token platform ready for production deployment."
+social token platform ready for production deployment on Vercel."
     
     print_success "Changes committed"
 fi
 
 # Push to GitHub
-print_status "Pushing to GitHub..."
+print_status "Pushing to GitHub (XMenity-Vercel)..."
 if git push -u origin main 2>&1; then
     print_success "Successfully pushed to GitHub!"
 else
@@ -113,6 +117,8 @@ fi
 echo ""
 print_success "🎉 Deployment to GitHub completed!"
 echo ""
+print_success "🔗 Repository: https://github.com/DiamondzShadow/XMenity-Vercel"
+echo ""
 echo "📋 Next Steps:"
 echo "==============="
 echo ""
@@ -123,7 +129,7 @@ echo "   - Set up database connection string"
 echo ""
 echo "2. 🖥️  VM Backend Setup:"
 echo "   - SSH into your VM"
-echo "   - Clone the repository: git clone https://github.com/DiamondzShadow/XMenity-Tube.git"
+echo "   - Clone the repository: git clone https://github.com/DiamondzShadow/XMenity-Vercel.git"
 echo "   - Follow the instructions in DEPLOYMENT_GUIDE.md"
 echo ""
 echo "3. 🌐 Frontend Deployment:"

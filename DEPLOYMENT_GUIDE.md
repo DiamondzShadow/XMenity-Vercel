@@ -14,7 +14,7 @@ Before deploying, ensure you have:
 ### 1.1 Initialize Git (if not already done)
 ```bash
 git init
-git remote add origin https://github.com/DiamondzShadow/XMenity-Tube.git
+git remote add origin https://github.com/DiamondzShadow/XMenity-Vercel.git
 ```
 
 ### 1.2 Stage All Files
@@ -57,8 +57,8 @@ git push -u origin production-upgrade
 ssh username@your-vm-ip
 
 # Clone the repository
-git clone https://github.com/DiamondzShadow/XMenity-Tube.git
-cd XMenity-Tube
+git clone https://github.com/DiamondzShadow/XMenity-Vercel.git
+cd XMenity-Vercel
 ```
 
 ### 2.2 Install Dependencies

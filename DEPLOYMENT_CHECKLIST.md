@@ -15,7 +15,7 @@ chmod +x scripts/deploy.sh
 ```bash
 # Initialize and add remote
 git init
-git remote add origin https://github.com/DiamondzShadow/XMenity-Tube.git
+git remote add origin https://github.com/DiamondzShadow/XMenity-Vercel.git
 
 # Stage and commit all files
 git add .
@@ -107,8 +107,8 @@ GRANT ALL PRIVILEGES ON DATABASE social_tokens TO your_username;
 ### 3. Application Deployment
 ```bash
 # Clone repository
-git clone https://github.com/DiamondzShadow/XMenity-Tube.git
-cd XMenity-Tube
+git clone https://github.com/DiamondzShadow/XMenity-Vercel.git
+cd XMenity-Vercel
 
 # Install dependencies
 pnpm install
@@ -279,7 +279,7 @@ sudo tail -f /var/log/nginx/error.log
 ## 📞 Support Resources
 
 - **Documentation**: See `DEPLOYMENT_GUIDE.md` for detailed instructions
-- **GitHub Repository**: https://github.com/DiamondzShadow/XMenity-Tube
+- **GitHub Repository**: https://github.com/DiamondzShadow/XMenity-Vercel
 - **Issues**: Create GitHub issues for bugs and feature requests
 - **Logs**: Always check PM2 logs first: `pm2 logs xmenity-backend`
 
