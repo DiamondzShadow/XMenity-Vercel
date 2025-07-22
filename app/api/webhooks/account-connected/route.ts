@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ethers } from 'ethers';
 import { thirdwebService } from '@/lib/thirdweb-sdk';
 import { walletBindingService } from '@/lib/wallet-bindings';
-import { insightIQService } from '@/lib/insightiq';
+import { SupabaseService } from '@/lib/supabase';
 
 // Webhook handler for X account connections
 export async function POST(request: NextRequest) {

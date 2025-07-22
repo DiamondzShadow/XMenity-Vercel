@@ -1,19 +1,10 @@
-import { PrismaClient } from '@prisma/client';
+import { SupabaseService, WalletXBinding, WalletXBindingInsert } from './supabase';
 import { v4 as uuidv4 } from 'uuid';
 
-const prisma = new PrismaClient();
+const supabaseService = SupabaseService.getInstance();
 
-export interface WalletXBinding {
-  id: string;
-  platformUserId: string;
-  platformUsername: string;
-  walletAddress: string;
-  dateLinked: Date;
-  minted: boolean;
-  lastMintAt?: Date;
-  extraMetadata?: any;
-  isActive: boolean;
-}
+// Re-export types from Supabase
+export type { WalletXBinding, WalletXBindingInsert } from './supabase';
 
 export interface BindingCreateParams {
   platformUserId: string;
@@ -42,31 +33,15 @@ export class WalletBindingService {
   }
 
   /**
-   * Create a new wallet-X account binding
+   * Create a new wallet binding
    */
   async createBinding(params: BindingCreateParams): Promise<WalletXBinding> {
     try {
-      // Check if binding already exists
-      const existing = await this.getBinding(
-        params.platformUserId,
-        params.walletAddress
-      );
-
-      if (existing) {
-        throw new Error('Binding already exists for this platform user and wallet');
-      }
-
-      const binding = await prisma.walletXBinding.create({
-        data: {
-          id: uuidv4(),
-          platformUserId: params.platformUserId,
-          platformUsername: params.platformUsername,
-          walletAddress: params.walletAddress.toLowerCase(),
-          dateLinked: new Date(),
-          minted: false,
-          extraMetadata: params.extraMetadata || {},
-          isActive: true,
-        },
+      const binding = await supabaseService.createWalletBinding({
+        platform_user_id: params.platformUserId,
+        platform_username: params.platformUsername,
+        wallet_address: params.walletAddress.toLowerCase(),
+        extra_metadata: params.extraMetadata || {},
       });
 
       return binding;
@@ -77,69 +52,64 @@ export class WalletBindingService {
   }
 
   /**
-   * Get binding by platform user ID and wallet address
-   */
-  async getBinding(
-    platformUserId: string,
-    walletAddress: string
-  ): Promise<WalletXBinding | null> {
-    try {
-      const binding = await prisma.walletXBinding.findFirst({
-        where: {
-          platformUserId,
-          walletAddress: walletAddress.toLowerCase(),
-          isActive: true,
-        },
-      });
-
-      return binding;
-    } catch (error) {
-      console.error('Error getting wallet binding:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Get all bindings for a wallet address
-   */
-  async getBindingsByWallet(walletAddress: string): Promise<WalletXBinding[]> {
-    try {
-      const bindings = await prisma.walletXBinding.findMany({
-        where: {
-          walletAddress: walletAddress.toLowerCase(),
-          isActive: true,
-        },
-        orderBy: {
-          dateLinked: 'desc',
-        },
-      });
-
-      return bindings;
-    } catch (error) {
-      console.error('Error getting bindings by wallet:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Get all bindings for a platform user
+   * Get bindings by platform user ID
    */
   async getBindingsByPlatformUser(platformUserId: string): Promise<WalletXBinding[]> {
     try {
-      const bindings = await prisma.walletXBinding.findMany({
-        where: {
-          platformUserId,
-          isActive: true,
-        },
-        orderBy: {
-          dateLinked: 'desc',
-        },
-      });
-
-      return bindings;
+      return await supabaseService.getWalletBindings(platformUserId);
     } catch (error) {
       console.error('Error getting bindings by platform user:', error);
-      return [];
+      throw error;
+    }
+  }
+
+  /**
+   * Get bindings by wallet address
+   */
+  async getBindingsByWallet(walletAddress: string): Promise<WalletXBinding[]> {
+    try {
+      const { supabaseAdmin } = await import('./supabase');
+      const { data, error } = await supabaseAdmin
+        .from('wallet_x_bindings')
+        .select('*')
+        .eq('wallet_address', walletAddress.toLowerCase())
+        .eq('is_active', true);
+
+      if (error) {
+        console.error('Error fetching bindings by wallet:', error);
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error getting bindings by wallet:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if a binding exists
+   */
+  async bindingExists(platformUserId: string, walletAddress: string): Promise<boolean> {
+    try {
+      const { supabaseAdmin } = await import('./supabase');
+      const { data, error } = await supabaseAdmin
+        .from('wallet_x_bindings')
+        .select('id')
+        .eq('platform_user_id', platformUserId)
+        .eq('wallet_address', walletAddress.toLowerCase())
+        .eq('is_active', true)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 = not found
+        console.error('Error checking binding existence:', error);
+        throw error;
+      }
+
+      return !!data;
+    } catch (error) {
+      console.error('Error checking if binding exists:', error);
+      return false;
     }
   }
 
@@ -152,257 +122,160 @@ export class WalletBindingService {
     updates: BindingUpdateParams
   ): Promise<WalletXBinding | null> {
     try {
-      const binding = await prisma.walletXBinding.updateMany({
-        where: {
-          platformUserId,
-          walletAddress: walletAddress.toLowerCase(),
-          isActive: true,
-        },
-        data: {
-          ...updates,
-          ...(updates.minted && { lastMintAt: new Date() }),
-        },
-      });
+      const { supabaseAdmin } = await import('./supabase');
+      const updateData: any = {};
 
-      if (binding.count === 0) {
-        return null;
+      if (updates.minted !== undefined) updateData.minted = updates.minted;
+      if (updates.lastMintAt) updateData.last_mint_at = updates.lastMintAt.toISOString();
+      if (updates.extraMetadata) updateData.extra_metadata = updates.extraMetadata;
+      if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
+
+      const { data, error } = await supabaseAdmin
+        .from('wallet_x_bindings')
+        .update(updateData)
+        .eq('platform_user_id', platformUserId)
+        .eq('wallet_address', walletAddress.toLowerCase())
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating binding:', error);
+        throw error;
       }
 
-      // Return the updated binding
-      return await this.getBinding(platformUserId, walletAddress);
+      return data;
     } catch (error) {
-      console.error('Error updating wallet binding:', error);
-      return null;
+      console.error('Error updating binding:', error);
+      throw error;
     }
   }
 
   /**
-   * Check if a user has already minted for a specific wallet
-   */
-  async hasUserMinted(
-    platformUserId: string,
-    walletAddress: string
-  ): Promise<boolean> {
-    try {
-      const binding = await this.getBinding(platformUserId, walletAddress);
-      return binding?.minted || false;
-    } catch (error) {
-      console.error('Error checking if user minted:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Mark a binding as minted
+   * Mark a wallet as minted (convenience method)
    */
   async markAsMinted(
     platformUserId: string,
     walletAddress: string,
-    extraMetadata?: any
-  ): Promise<boolean> {
+    metadata?: any
+  ): Promise<void> {
     try {
-      const result = await this.updateBinding(
-        platformUserId,
-        walletAddress,
-        {
-          minted: true,
-          extraMetadata,
-        }
-      );
-
-      return result !== null;
+      await supabaseService.markAsMinted(platformUserId, walletAddress, metadata);
     } catch (error) {
       console.error('Error marking as minted:', error);
-      return false;
+      throw error;
     }
   }
 
   /**
-   * Deactivate a binding (soft delete)
+   * Deactivate a binding
    */
-  async deactivateBinding(
-    platformUserId: string,
-    walletAddress: string
-  ): Promise<boolean> {
+  async deactivateBinding(platformUserId: string, walletAddress: string): Promise<void> {
     try {
-      const result = await this.updateBinding(
-        platformUserId,
-        walletAddress,
-        {
-          isActive: false,
-        }
-      );
-
-      return result !== null;
+      await this.updateBinding(platformUserId, walletAddress, { isActive: false });
     } catch (error) {
       console.error('Error deactivating binding:', error);
-      return false;
+      throw error;
     }
   }
 
   /**
-   * Get all minted bindings
+   * Get all active bindings
    */
-  async getMintedBindings(): Promise<WalletXBinding[]> {
+  async getAllActiveBindings(): Promise<WalletXBinding[]> {
     try {
-      const bindings = await prisma.walletXBinding.findMany({
-        where: {
-          minted: true,
-          isActive: true,
-        },
-        orderBy: {
-          lastMintAt: 'desc',
-        },
-      });
+      const { supabaseAdmin } = await import('./supabase');
+      const { data, error } = await supabaseAdmin
+        .from('wallet_x_bindings')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
 
-      return bindings;
+      if (error) {
+        console.error('Error fetching all active bindings:', error);
+        throw error;
+      }
+
+      return data || [];
     } catch (error) {
-      console.error('Error getting minted bindings:', error);
-      return [];
+      console.error('Error getting all active bindings:', error);
+      throw error;
     }
   }
 
   /**
-   * Get bindings created within a time range
+   * Get binding statistics
    */
-  async getBindingsByDateRange(
-    startDate: Date,
-    endDate: Date
-  ): Promise<WalletXBinding[]> {
+  async getBindingStats(): Promise<{
+    totalBindings: number;
+    activeBindings: number;
+    mintedBindings: number;
+    uniqueWallets: number;
+    uniqueUsers: number;
+  }> {
     try {
-      const bindings = await prisma.walletXBinding.findMany({
-        where: {
-          dateLinked: {
-            gte: startDate,
-            lte: endDate,
-          },
-          isActive: true,
-        },
-        orderBy: {
-          dateLinked: 'desc',
-        },
-      });
+      const { supabaseAdmin } = await import('./supabase');
+      const { data, error } = await supabaseAdmin
+        .from('wallet_x_bindings')
+        .select('*');
 
-      return bindings;
-    } catch (error) {
-      console.error('Error getting bindings by date range:', error);
-      return [];
-    }
-  }
+      if (error) {
+        console.error('Error fetching binding stats:', error);
+        throw error;
+      }
 
-  /**
-   * Get statistics about bindings
-   */
-  async getBindingStats() {
-    try {
-      const [
-        totalBindings,
-        mintedBindings,
-        uniqueWallets,
-        uniquePlatformUsers,
-        recentBindings,
-      ] = await Promise.all([
-        prisma.walletXBinding.count({
-          where: { isActive: true },
-        }),
-        prisma.walletXBinding.count({
-          where: { minted: true, isActive: true },
-        }),
-        prisma.walletXBinding.groupBy({
-          by: ['walletAddress'],
-          where: { isActive: true },
-        }),
-        prisma.walletXBinding.groupBy({
-          by: ['platformUserId'],
-          where: { isActive: true },
-        }),
-        prisma.walletXBinding.count({
-          where: {
-            dateLinked: {
-              gte: new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24 hours
-            },
-            isActive: true,
-          },
-        }),
-      ]);
+      const bindings = data || [];
+      const uniqueWallets = new Set(bindings.map(b => b.wallet_address)).size;
+      const uniqueUsers = new Set(bindings.map(b => b.platform_user_id)).size;
 
       return {
-        totalBindings,
-        mintedBindings,
-        uniqueWallets: uniqueWallets.length,
-        uniquePlatformUsers: uniquePlatformUsers.length,
-        recentBindings,
-        mintingRate: totalBindings > 0 ? (mintedBindings / totalBindings) * 100 : 0,
+        totalBindings: bindings.length,
+        activeBindings: bindings.filter(b => b.is_active).length,
+        mintedBindings: bindings.filter(b => b.minted).length,
+        uniqueWallets,
+        uniqueUsers
       };
     } catch (error) {
       console.error('Error getting binding stats:', error);
-      return {
-        totalBindings: 0,
-        mintedBindings: 0,
-        uniqueWallets: 0,
-        uniquePlatformUsers: 0,
-        recentBindings: 0,
-        mintingRate: 0,
-      };
+      throw error;
     }
   }
 
   /**
-   * Cleanup old inactive bindings
+   * Check if user can mint (has active binding and hasn't minted yet)
    */
-  async cleanupInactiveBindings(olderThanDays: number = 30): Promise<number> {
+  async canUserMint(platformUserId: string, walletAddress: string): Promise<boolean> {
     try {
-      const cutoffDate = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000);
-      
-      const result = await prisma.walletXBinding.deleteMany({
-        where: {
-          isActive: false,
-          dateLinked: {
-            lt: cutoffDate,
-          },
-        },
-      });
-
-      console.log(`Cleaned up ${result.count} inactive bindings older than ${olderThanDays} days`);
-      return result.count;
+      return await supabaseService.canWalletMint(platformUserId, walletAddress);
     } catch (error) {
-      console.error('Error cleaning up inactive bindings:', error);
-      return 0;
+      console.error('Error checking if user can mint:', error);
+      return false;
     }
   }
 
   /**
-   * Validate wallet address format
+   * Get user's mint history
    */
-  private isValidWalletAddress(address: string): boolean {
-    return /^0x[a-fA-F0-9]{40}$/.test(address);
-  }
-
-  /**
-   * Search bindings by username pattern
-   */
-  async searchBindingsByUsername(pattern: string): Promise<WalletXBinding[]> {
+  async getUserMintHistory(platformUserId: string): Promise<any[]> {
     try {
-      const bindings = await prisma.walletXBinding.findMany({
-        where: {
-          platformUsername: {
-            contains: pattern,
-            mode: 'insensitive',
-          },
-          isActive: true,
-        },
-        orderBy: {
-          dateLinked: 'desc',
-        },
-        take: 50, // Limit results
-      });
+      const { supabaseAdmin } = await import('./supabase');
+      const { data, error } = await supabaseAdmin
+        .from('token_mints')
+        .select('*')
+        .eq('platform_user_id', platformUserId)
+        .order('created_at', { ascending: false });
 
-      return bindings;
+      if (error) {
+        console.error('Error fetching user mint history:', error);
+        throw error;
+      }
+
+      return data || [];
     } catch (error) {
-      console.error('Error searching bindings by username:', error);
-      return [];
+      console.error('Error getting user mint history:', error);
+      throw error;
     }
   }
 }
 
+// Export singleton instance
 export const walletBindingService = WalletBindingService.getInstance();
