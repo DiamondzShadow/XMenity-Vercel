@@ -30,8 +30,8 @@ export function formatPrice(price: string | number): string {
   return `$${num.toFixed(2)}`
 }
 
-export const parseTokenAmount = (amount: string, decimals = 18): bigint => {
-  return ethers.parseUnits(amount, decimals)
+export const parseTokenAmount = (amount: string, decimals = 18): any => {
+  return ethers.utils.parseUnits(amount, decimals)
 }
 
 // Thirdweb client configuration with fallback
