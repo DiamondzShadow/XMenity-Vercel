@@ -67,7 +67,7 @@ A production-grade platform for X (Twitter) creators to launch their own communi
 
 ### Installation
 
-```bash
+\`\`\`bash
 # Clone the repository
 git clone https://github.com/DiamondzShadow/XMenity-Tube.git
 cd XMenity-Tube
@@ -86,13 +86,13 @@ pnpm db:push
 # Start development servers
 pnpm dev        # Frontend (port 3000)
 pnpm dev:server # Backend (port 3001)
-```
+\`\`\`
 
 ### Environment Configuration
 
 Create a `.env` file with the following variables:
 
-```env
+\`\`\`env
 # Database
 DATABASE_URL="postgresql://username:password@localhost:5432/social_tokens"
 
@@ -115,7 +115,7 @@ NEXTAUTH_SECRET="your_nextauth_secret_key"
 # Application
 NODE_ENV="development"
 FRONTEND_URL="http://localhost:3000"
-```
+\`\`\`
 
 ## 📱 User Journey
 
@@ -135,33 +135,33 @@ FRONTEND_URL="http://localhost:3000"
 ## 🏗️ Architecture
 
 ### Smart Contracts
-```
+\`\`\`
 Factory Contract (Arbitrum)
 ├── Token Creation
 ├── Milestone Management
 ├── Reward Distribution
 └── Identity Verification
-```
+\`\`\`
 
 ### Backend Services
-```
+\`\`\`
 Express API Server
 ├── Authentication (JWT + SIWE)
 ├── Database Management (Prisma)
 ├── Social Media Integration
 ├── Blockchain Monitoring
 └── Rate Limiting & Security
-```
+\`\`\`
 
 ### Frontend Components
-```
+\`\`\`
 Next.js Application
 ├── Web3 Providers (Wagmi + RainbowKit)
 ├── Authentication Flow
 ├── Token Dashboard
 ├── Creator Tools
 └── Analytics
-```
+\`\`\`
 
 ## 🔒 Security Features
 
@@ -206,35 +206,35 @@ The platform uses a comprehensive PostgreSQL schema with the following key model
 ## 🚀 Deployment
 
 ### Vercel (Recommended)
-```bash
+\`\`\`bash
 # Install Vercel CLI
 npm i -g vercel
 
 # Deploy
 vercel --prod
-```
+\`\`\`
 
 ### Docker
-```bash
+\`\`\`bash
 # Build image
 docker build -t xmenity-app .
 
 # Run container
 docker run -p 3000:3000 xmenity-app
-```
+\`\`\`
 
 ### Manual Server
-```bash
+\`\`\`bash
 # Build application
 pnpm build
 
 # Start production server
 pnpm start
-```
+\`\`\`
 
 ## 🧪 Testing
 
-```bash
+\`\`\`bash
 # Run all tests
 pnpm test
 
@@ -246,7 +246,7 @@ pnpm type-check
 
 # Linting
 pnpm lint
-```
+\`\`\`
 
 ## 📈 Performance Optimizations
 

@@ -12,19 +12,19 @@ Before deploying, ensure you have:
 ## 🔧 Step 1: Push to GitHub
 
 ### 1.1 Initialize Git (if not already done)
-```bash
+\`\`\`bash
 git init
 git remote add origin https://github.com/DiamondzShadow/XMenity-Vercel.git
-```
+\`\`\`
 
 ### 1.2 Stage All Files
-```bash
+\`\`\`bash
 # Add all the new production files
 git add .
-```
+\`\`\`
 
 ### 1.3 Commit Changes
-```bash
+\`\`\`bash
 git commit -m "feat: upgrade to production-grade social token platform
 
 - Add comprehensive Web3 integration (Thirdweb, Wagmi, RainbowKit)
@@ -37,32 +37,32 @@ git commit -m "feat: upgrade to production-grade social token platform
 - Create wallet connection and authentication components
 - Add production-ready Next.js configuration
 - Implement health checks and monitoring"
-```
+\`\`\`
 
 ### 1.4 Push to GitHub
-```bash
+\`\`\`bash
 # Push to main branch
 git push -u origin main
 
 # Or if you prefer a feature branch first
 git checkout -b production-upgrade
 git push -u origin production-upgrade
-```
+\`\`\`
 
 ## 🖥️ Step 2: VM Backend Setup
 
 ### 2.1 Clone Repository on VM
-```bash
+\`\`\`bash
 # SSH into your VM
 ssh username@your-vm-ip
 
 # Clone the repository
 git clone https://github.com/DiamondzShadow/XMenity-Vercel.git
 cd XMenity-Vercel
-```
+\`\`\`
 
 ### 2.2 Install Dependencies
-```bash
+\`\`\`bash
 # Install Node.js 18+ if not installed
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 sudo apt-get install -y nodejs
@@ -72,19 +72,19 @@ npm install -g pnpm
 
 # Install project dependencies
 pnpm install
-```
+\`\`\`
 
 ### 2.3 Configure Environment
-```bash
+\`\`\`bash
 # Copy environment template
 cp .env.example .env
 
 # Edit with your specific configuration
 nano .env
-```
+\`\`\`
 
 Add your configuration:
-```env
+\`\`\`env
 # Firebase Configuration
 FIREBASE_PROJECT_ID=diamond-zminter
 FIREBASE_CLIENT_EMAIL=firebase-adminsdk-fbsvc@diamond-zminter.iam.gserviceaccount.com
@@ -117,10 +117,10 @@ NODE_ENV=production
 PORT=3001
 VM_HOST=0.0.0.0
 CORS_ORIGIN=*
-```
+\`\`\`
 
 ### 2.4 Setup Database
-```bash
+\`\`\`bash
 # Install PostgreSQL if not installed
 sudo apt update
 sudo apt install postgresql postgresql-contrib
@@ -135,10 +135,10 @@ GRANT ALL PRIVILEGES ON DATABASE social_tokens TO your_username;
 # Generate Prisma client and push schema
 pnpm db:generate
 pnpm db:push
-```
+\`\`\`
 
 ### 2.5 Start Backend Server
-```bash
+\`\`\`bash
 # Build the application
 pnpm build
 
@@ -150,18 +150,18 @@ npm install -g pm2
 pm2 start server/index.js --name "xmenity-backend"
 pm2 startup
 pm2 save
-```
+\`\`\`
 
 ## 🌐 Step 3: Frontend Deployment (Vercel)
 
 ### 3.1 Connect to Vercel
-```bash
+\`\`\`bash
 # Install Vercel CLI
 npm i -g vercel
 
 # Deploy to Vercel
 vercel --prod
-```
+\`\`\`
 
 ### 3.2 Configure Environment Variables in Vercel
 Add these in your Vercel dashboard:
@@ -173,22 +173,22 @@ Add these in your Vercel dashboard:
 ## 🔒 Step 4: Security Setup
 
 ### 4.1 Configure Firewall
-```bash
+\`\`\`bash
 # Allow necessary ports
 sudo ufw allow 22    # SSH
 sudo ufw allow 3001  # Backend API
 sudo ufw allow 5432  # PostgreSQL (if external access needed)
 sudo ufw enable
-```
+\`\`\`
 
 ### 4.2 Setup SSL Certificate (Let's Encrypt)
-```bash
+\`\`\`bash
 sudo apt install certbot nginx
 sudo certbot --nginx -d your-domain.com
-```
+\`\`\`
 
 ### 4.3 Configure Nginx Reverse Proxy
-```bash
+\`\`\`bash
 # Create nginx config
 sudo nano /etc/nginx/sites-available/xmenity-backend
 
@@ -214,29 +214,29 @@ server {
 sudo ln -s /etc/nginx/sites-available/xmenity-backend /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
-```
+\`\`\`
 
 ## 📊 Step 5: Monitoring Setup
 
 ### 5.1 Setup Logging
-```bash
+\`\`\`bash
 # Create logs directory
 mkdir -p logs
 
 # Configure PM2 logs
 pm2 logs xmenity-backend
-```
+\`\`\`
 
 ### 5.2 Health Check Setup
-```bash
+\`\`\`bash
 # Test health endpoint
 curl http://localhost:3001/health
-```
+\`\`\`
 
 ## 🧪 Step 6: Testing
 
 ### 6.1 Test Backend API
-```bash
+\`\`\`bash
 # Test health endpoint
 curl http://your-vm-ip:3001/health
 
@@ -244,7 +244,7 @@ curl http://your-vm-ip:3001/health
 curl -X POST http://your-vm-ip:3001/api/auth/nonce \
   -H "Content-Type: application/json" \
   -d '{"walletAddress":"0x1234567890123456789012345678901234567890"}'
-```
+\`\`\`
 
 ### 6.2 Test Frontend Connection
 - Open your Vercel deployment URL
@@ -256,36 +256,36 @@ curl -X POST http://your-vm-ip:3001/api/auth/nonce \
 ### Common Issues:
 
 1. **Database Connection Failed**
-   ```bash
+   \`\`\`bash
    # Check PostgreSQL status
    sudo systemctl status postgresql
    
    # Restart if needed
    sudo systemctl restart postgresql
-   ```
+   \`\`\`
 
 2. **Port Already in Use**
-   ```bash
+   \`\`\`bash
    # Find process using port 3001
    sudo lsof -i :3001
    
    # Kill the process
    sudo kill -9 <PID>
-   ```
+   \`\`\`
 
 3. **Environment Variables Not Loading**
-   ```bash
+   \`\`\`bash
    # Check .env file exists and has correct permissions
    ls -la .env
    chmod 600 .env
-   ```
+   \`\`\`
 
 4. **Prisma Connection Issues**
-   ```bash
+   \`\`\`bash
    # Reset and regenerate
    pnpm db:generate
    pnpm db:push
-   ```
+   \`\`\`
 
 ## 📞 Support
 

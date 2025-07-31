@@ -1,24 +1,88 @@
-import { createThirdwebClient, getContract } from "thirdweb";
-import { defineChain } from "thirdweb/chains";
-import { arbitrum } from "thirdweb/chains";
+import { createThirdwebClient, getContract } from "thirdweb"
+import { arbitrum } from "thirdweb/chains"
+import { ethers } from "ethers"
+import { isAddress } from "viem"
 
-// Thirdweb client configuration
-export const client = createThirdwebClient({
-  clientId: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID!,
-});
+// Utility functions that can be used without client
+export function isValidAddress(address: string): boolean {
+  return isAddress(address)
+}
+
+export function shortenAddress(address: string, chars = 4): string {
+  if (!address) return ""
+  return `${address.slice(0, chars + 2)}...${address.slice(-chars)}`
+}
+
+export function formatTokenAmount(amount: string | number, decimals = 18): string {
+  const num = typeof amount === "string" ? Number.parseFloat(amount) : amount
+  if (num === 0) return "0"
+
+  if (num < 0.001) return "<0.001"
+  if (num < 1) return num.toFixed(3)
+  if (num < 1000) return num.toFixed(2)
+  if (num < 1000000) return `${(num / 1000).toFixed(1)}K`
+  return `${(num / 1000000).toFixed(1)}M`
+}
+
+export function formatPrice(price: string | number): string {
+  const num = typeof price === "string" ? Number.parseFloat(price) : price
+  if (num < 0.01) return `$${num.toFixed(4)}`
+  return `$${num.toFixed(2)}`
+}
+
+export const parseTokenAmount = (amount: string, decimals = 18): bigint => {
+  return ethers.parseUnits(amount, decimals)
+}
+
+// Thirdweb client configuration with fallback
+let client: any = null
+
+try {
+  const clientId = process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID || process.env.THIRDWEB_CLIENT_ID
+  const secretKey = process.env.THIRDWEB_SECRET_KEY
+
+  if (clientId || secretKey) {
+    client = createThirdwebClient({
+      clientId: clientId || undefined,
+      secretKey: secretKey || undefined,
+    })
+  }
+} catch (error) {
+  console.warn("Thirdweb client initialization failed:", error)
+}
+
+export { client }
 
 // Chain configuration
-export const chain = arbitrum;
+export const chain = arbitrum
 
-// Factory contract configuration
-export const factoryContract = getContract({
-  client,
-  chain,
-  address: process.env.NEXT_PUBLIC_FACTORY_CONTRACT_ADDRESS!,
-});
+// Modular Token Factory Contract Address on Arbitrum One
+export const MODULAR_TOKEN_FACTORY_ADDRESS = "0xEA3126464a541ff082F184Ca6cd7CE3aeF50c7b7"
 
-// Contract ABIs
-export const ERC20_ABI = [
+// Factory contract configuration - only if client is available
+export const getFactoryContract = () => {
+  if (!client) {
+    throw new Error("Thirdweb client not initialized. Please check your environment variables.")
+  }
+
+  return getContract({
+    client,
+    chain,
+    address: MODULAR_TOKEN_FACTORY_ADDRESS,
+  })
+}
+
+// Contract ABIs for Modular Token Factory
+export const MODULAR_TOKEN_FACTORY_ABI = [
+  "function deployModularToken(string memory name, string memory symbol, uint256 initialSupply, string[] memory metrics, uint256[] memory thresholds, uint256[] memory weights, address creator, bytes memory creatorData) returns (address)",
+  "function getTokensByCreator(address creator) view returns (address[])",
+  "function tokenCount() view returns (uint256)",
+  "function tokens(uint256 index) view returns (address)",
+  "function isValidToken(address token) view returns (bool)",
+  "event ModularTokenDeployed(address indexed tokenAddress, address indexed creator, string name, string symbol, uint256 initialSupply)",
+]
+
+export const MODULAR_TOKEN_ABI = [
   "function name() view returns (string)",
   "function symbol() view returns (string)",
   "function decimals() view returns (uint8)",
@@ -28,214 +92,165 @@ export const ERC20_ABI = [
   "function transferFrom(address from, address to, uint256 amount) returns (bool)",
   "function approve(address spender, uint256 amount) returns (bool)",
   "function allowance(address owner, address spender) view returns (uint256)",
+  "function mint(address to, uint256 amount) returns (bool)",
+  "function burn(uint256 amount) returns (bool)",
+  "function creator() view returns (address)",
+  "function getMetrics() view returns (string[] memory, uint256[] memory, uint256[] memory)",
+  "function updateMetricValue(string memory metric, uint256 value) returns (bool)",
+  "function claimReward() returns (bool)",
   "event Transfer(address indexed from, address indexed to, uint256 value)",
   "event Approval(address indexed owner, address indexed spender, uint256 value)",
-];
+  "event MetricUpdated(string metric, uint256 oldValue, uint256 newValue)",
+  "event RewardClaimed(address indexed creator, uint256 amount)",
+]
 
-export const FACTORY_ABI = [
-  "function createToken(string memory name, string memory symbol, uint256 initialSupply, address creator) returns (address)",
-  "function getTokensByCreator(address creator) view returns (address[])",
-  "function tokenCount() view returns (uint256)",
-  "function tokens(uint256 index) view returns (address)",
-  "event TokenCreated(address indexed tokenAddress, address indexed creator, string name, string symbol)",
-];
-
-// Token creation parameters interface
-export interface TokenCreationParams {
-  name: string;
-  symbol: string;
-  description?: string;
-  logoUrl?: string;
-  initialSupply: bigint;
-  maxSupply?: bigint;
-  mintingRule: 'manual' | 'per_follower' | 'milestone';
-  mintAmount: bigint;
-}
-
-// Milestone interface
-export interface Milestone {
-  title: string;
-  description?: string;
-  type: 'followers' | 'posts' | 'engagement' | 'custom';
-  target: bigint;
-  rewardAmount: bigint;
-  rewardType: 'token' | 'nft' | 'custom';
-}
-
-// Social media metrics interface
-export interface SocialMetrics {
-  followers: number;
-  following: number;
-  posts: number;
-  engagement: number;
-  verified: boolean;
-}
-
-// Utility functions
-export const formatTokenAmount = (amount: bigint, decimals: number = 18): string => {
-  const divisor = BigInt(10 ** decimals);
-  const quotient = amount / divisor;
-  const remainder = amount % divisor;
-  
-  if (remainder === 0n) {
-    return quotient.toString();
-  }
-  
-  const remainderStr = remainder.toString().padStart(decimals, '0');
-  const trimmedRemainder = remainderStr.replace(/0+$/, '');
-  
-  return trimmedRemainder ? `${quotient}.${trimmedRemainder}` : quotient.toString();
-};
-
-export const parseTokenAmount = (amount: string, decimals: number = 18): bigint => {
-  const [whole, fractional = ''] = amount.split('.');
-  const wholePart = BigInt(whole || '0');
-  
-  if (!fractional) {
-    return wholePart * BigInt(10 ** decimals);
-  }
-  
-  const fractionalPart = fractional.padEnd(decimals, '0').slice(0, decimals);
-  return wholePart * BigInt(10 ** decimals) + BigInt(fractionalPart);
-};
-
-export const shortenAddress = (address: string, chars: number = 4): string => {
-  if (!address) return '';
-  return `${address.slice(0, chars + 2)}...${address.slice(-chars)}`;
-};
-
-export const formatTransactionHash = (hash: string): string => {
-  return shortenAddress(hash, 6);
-};
-
-// Validation functions
-export const isValidAddress = (address: string): boolean => {
-  return /^0x[a-fA-F0-9]{40}$/.test(address);
-};
-
-export const isValidTokenSymbol = (symbol: string): boolean => {
-  return /^[A-Z]{1,11}$/.test(symbol);
-};
-
-export const isValidTokenName = (name: string): boolean => {
-  return name.length >= 1 && name.length <= 50;
-};
-
-// Error handling
-export class Web3Error extends Error {
-  constructor(message: string, public code?: string, public data?: any) {
-    super(message);
-    this.name = 'Web3Error';
-  }
-}
-
-export const handleWeb3Error = (error: any): Web3Error => {
-  console.error('Web3 Error:', error);
-  
-  if (error.code === 4001) {
-    return new Web3Error('Transaction rejected by user', 'USER_REJECTED');
-  }
-  
-  if (error.code === -32602) {
-    return new Web3Error('Invalid parameters', 'INVALID_PARAMS');
-  }
-  
-  if (error.message?.includes('insufficient funds')) {
-    return new Web3Error('Insufficient funds for transaction', 'INSUFFICIENT_FUNDS');
-  }
-  
-  if (error.message?.includes('gas')) {
-    return new Web3Error('Gas estimation failed', 'GAS_ERROR');
-  }
-  
-  return new Web3Error(error.message || 'Unknown Web3 error', 'UNKNOWN_ERROR');
-};
-
-// Constants
-export const SUPPORTED_CHAINS = [arbitrum];
-
-export const CHAIN_EXPLORERS = {
-  [arbitrum.id]: 'https://arbiscan.io',
-};
-
-export const RPC_URLS = {
-  [arbitrum.id]: process.env.NEXT_PUBLIC_ARBITRUM_RPC_URL || 'https://arb1.arbitrum.io/rpc',
-};
-
-export const NATIVE_CURRENCY = {
-  [arbitrum.id]: {
-    name: 'Ethereum',
-    symbol: 'ETH',
-    decimals: 18,
+// Web3 utility functions
+export const Web3Utils = {
+  // Provider setup
+  getProvider(): ethers.BrowserProvider {
+    if (typeof window === "undefined" || !window.ethereum) {
+      throw new Error("Ethereum provider not found. Please install MetaMask or another Web3 wallet.")
+    }
+    return new ethers.BrowserProvider(window.ethereum)
   },
-};
 
-// Contract interaction helpers
-export const getTokenBalance = async (
-  tokenAddress: string,
-  userAddress: string
-): Promise<bigint> => {
-  try {
-    const tokenContract = getContract({
-      client,
-      chain,
-      address: tokenAddress,
-    });
-    
-    // This would be implemented with actual contract calls
-    // For now, returning a placeholder
-    return BigInt(0);
-  } catch (error) {
-    throw handleWeb3Error(error);
-  }
-};
+  async getSigner(): Promise<ethers.JsonRpcSigner> {
+    const provider = this.getProvider()
+    return await provider.getSigner()
+  },
 
-export const getTokenMetadata = async (tokenAddress: string) => {
-  try {
-    const tokenContract = getContract({
-      client,
-      chain,
-      address: tokenAddress,
-    });
-    
-    // This would be implemented with actual contract calls
-    // For now, returning a placeholder
-    return {
-      name: '',
-      symbol: '',
-      decimals: 18,
-      totalSupply: BigInt(0),
-    };
-  } catch (error) {
-    throw handleWeb3Error(error);
-  }
-};
+  // Contract interactions
+  async deployModularToken(tokenData: {
+    name: string
+    symbol: string
+    initialSupply: string
+    metrics: string[]
+    thresholds: number[]
+    weights: number[]
+    creator: string
+    creatorData: any
+  }): Promise<{ contractAddress: string; transactionHash: string }> {
+    try {
+      const signer = await this.getSigner()
+      const factory = new ethers.Contract(MODULAR_TOKEN_FACTORY_ADDRESS, MODULAR_TOKEN_FACTORY_ABI, signer)
 
-// Local storage helpers for caching
-export const getCachedTokenData = (tokenAddress: string) => {
-  if (typeof window === 'undefined') return null;
-  
-  try {
-    const cached = localStorage.getItem(`token_${tokenAddress}`);
-    return cached ? JSON.parse(cached) : null;
-  } catch {
-    return null;
-  }
-};
+      const initialSupplyWei = ethers.parseEther(tokenData.initialSupply)
+      const creatorDataBytes = ethers.toUtf8Bytes(JSON.stringify(tokenData.creatorData))
 
-export const setCachedTokenData = (tokenAddress: string, data: any) => {
-  if (typeof window === 'undefined') return;
-  
-  try {
-    localStorage.setItem(`token_${tokenAddress}`, JSON.stringify({
-      ...data,
-      cachedAt: Date.now(),
-    }));
-  } catch {
-    // Ignore localStorage errors
-  }
-};
+      const tx = await factory.deployModularToken(
+        tokenData.name,
+        tokenData.symbol,
+        initialSupplyWei,
+        tokenData.metrics,
+        tokenData.thresholds,
+        tokenData.weights,
+        tokenData.creator,
+        creatorDataBytes,
+      )
 
-export const isCacheValid = (cachedData: any, maxAge: number = 5 * 60 * 1000): boolean => {
-  return cachedData && cachedData.cachedAt && (Date.now() - cachedData.cachedAt) < maxAge;
-};
+      const receipt = await tx.wait()
+
+      // Extract contract address from event logs
+      const event = receipt.logs.find((log: any) => {
+        try {
+          const parsed = factory.interface.parseLog(log)
+          return parsed?.name === "ModularTokenDeployed"
+        } catch {
+          return false
+        }
+      })
+
+      if (!event) {
+        throw new Error("Token deployment event not found")
+      }
+
+      const parsedEvent = factory.interface.parseLog(event)
+      const contractAddress = parsedEvent?.args[0]
+
+      return {
+        contractAddress,
+        transactionHash: receipt.hash,
+      }
+    } catch (error) {
+      console.error("Token deployment error:", error)
+      throw new Error(`Failed to deploy token: ${error instanceof Error ? error.message : "Unknown error"}`)
+    }
+  },
+
+  async getTokenInfo(contractAddress: string): Promise<any> {
+    try {
+      const provider = this.getProvider()
+      const token = new ethers.Contract(contractAddress, MODULAR_TOKEN_ABI, provider)
+
+      const [name, symbol, decimals, totalSupply, creator, metrics] = await Promise.all([
+        token.name(),
+        token.symbol(),
+        token.decimals(),
+        token.totalSupply(),
+        token.creator(),
+        token.getMetrics(),
+      ])
+
+      return {
+        name,
+        symbol,
+        decimals: Number(decimals),
+        totalSupply: ethers.formatEther(totalSupply),
+        creator,
+        contractAddress,
+        metrics: {
+          names: metrics[0],
+          thresholds: metrics[1].map((t: any) => Number(t)),
+          weights: metrics[2].map((w: any) => Number(w)),
+        },
+      }
+    } catch (error) {
+      console.error("Get token info error:", error)
+      throw new Error("Failed to get token information")
+    }
+  },
+
+  async getTokenBalance(contractAddress: string, userAddress: string): Promise<string> {
+    try {
+      const provider = this.getProvider()
+      const token = new ethers.Contract(contractAddress, MODULAR_TOKEN_ABI, provider)
+      const balance = await token.balanceOf(userAddress)
+      return ethers.formatEther(balance)
+    } catch (error) {
+      console.error("Get token balance error:", error)
+      throw new Error("Failed to get token balance")
+    }
+  },
+
+  async updateMetricValue(contractAddress: string, metric: string, value: number): Promise<string> {
+    try {
+      const signer = await this.getSigner()
+      const token = new ethers.Contract(contractAddress, MODULAR_TOKEN_ABI, signer)
+
+      const tx = await token.updateMetricValue(metric, value)
+      const receipt = await tx.wait()
+
+      return receipt.hash
+    } catch (error) {
+      console.error("Update metric error:", error)
+      throw new Error("Failed to update metric value")
+    }
+  },
+
+  async claimReward(contractAddress: string): Promise<string> {
+    try {
+      const signer = await this.getSigner()
+      const token = new ethers.Contract(contractAddress, MODULAR_TOKEN_ABI, signer)
+
+      const tx = await token.claimReward()
+      const receipt = await tx.wait()
+
+      return receipt.hash
+    } catch (error) {
+      console.error("Claim reward error:", error)
+      throw new Error("Failed to claim reward")
+    }
+  },
+}
+
+export default Web3Utils
