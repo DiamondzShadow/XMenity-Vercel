@@ -2,7 +2,9 @@ import {
   SocialListeningRequest,
   SocialListeningResponse,
   SocialListeningInsights,
-  SocialListeningQueryParams
+  SocialListeningQueryParams,
+  AnalysisFailedError,
+  AnalysisTimeoutError
 } from '../types';
 
 export class SocialListeningEndpoint {
@@ -10,7 +12,7 @@ export class SocialListeningEndpoint {
     endpoint: string,
     method?: 'GET' | 'POST' | 'PUT' | 'DELETE',
     body?: any,
-    queryParams?: Record<string, string | number | boolean>
+    queryParams?: Record<string, string | number | boolean | undefined>
   ) => Promise<T>) {}
 
   /**
@@ -74,19 +76,21 @@ export class SocialListeningEndpoint {
       }
       
       if (status.status === 'FAILURE') {
-        throw new Error(`Social listening search failed for job ${id}`);
+        throw new AnalysisFailedError(id);
       }
       
       // Wait before polling again
       await new Promise(resolve => setTimeout(resolve, interval));
     }
     
-    throw new Error(`Social listening search timeout for job ${id}`);
+    throw new AnalysisTimeoutError(id, timeout);
   }
 
   /**
    * Get all social content (paginated)
    * Automatically handles pagination to retrieve all content
+   * @warning This method loads ALL content into memory. 
+   * For large datasets, this may cause performance issues.
    */
   async getAllContent(
     id: string,

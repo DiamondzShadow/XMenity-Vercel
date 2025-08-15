@@ -3,7 +3,9 @@ import {
   PurchaseIntentResponse,
   PurchaseIntentInsights,
   PurchaseIntentCommentsResponse,
-  PaginationParams
+  PaginationParams,
+  AnalysisFailedError,
+  AnalysisTimeoutError
 } from '../types';
 
 export class PurchaseIntentEndpoint {
@@ -11,7 +13,7 @@ export class PurchaseIntentEndpoint {
     endpoint: string,
     method?: 'GET' | 'POST' | 'PUT' | 'DELETE',
     body?: any,
-    queryParams?: Record<string, string | number | boolean>
+    queryParams?: Record<string, string | number | boolean | undefined>
   ) => Promise<T>) {}
 
   /**
@@ -75,19 +77,21 @@ export class PurchaseIntentEndpoint {
       }
       
       if (insights.status === 'FAILURE') {
-        throw new Error(`Purchase intent analysis failed for job ${id}`);
+        throw new AnalysisFailedError(id);
       }
       
       // Wait before polling again
       await new Promise(resolve => setTimeout(resolve, interval));
     }
     
-    throw new Error(`Purchase intent analysis timeout for job ${id}`);
+    throw new AnalysisTimeoutError(id, timeout);
   }
 
   /**
    * Get all comments with purchase intent (paginated)
    * Automatically handles pagination to retrieve all comments
+   * @warning This method loads ALL comments into memory. 
+   * For large datasets, consider using streamAllComments() instead.
    */
   async getAllComments(
     id: string,
@@ -121,5 +125,50 @@ export class PurchaseIntentEndpoint {
     }
 
     return allComments;
+  }
+
+  /**
+   * Stream all comments with purchase intent using async iterator
+   * Memory-efficient alternative to getAllComments()
+   * @example
+   * for await (const comment of client.purchaseIntent.streamAllComments(id)) {
+   *   processComment(comment);
+   * }
+   */
+  async* streamAllComments(
+    id: string,
+    options: {
+      batchSize?: number; // default 100 (max allowed)
+      maxComments?: number; // default unlimited
+    } = {}
+  ): AsyncGenerator<PurchaseIntentCommentsResponse['data'][0], void, unknown> {
+    const batchSize = Math.min(options.batchSize || 100, 100);
+    const maxComments = options.maxComments || Infinity;
+    let processedCount = 0;
+    let offset = 0;
+
+    while (processedCount < maxComments) {
+      const response = await this.getComments(id, {
+        limit: Math.min(batchSize, maxComments - processedCount),
+        offset
+      });
+
+      if (response.data.length === 0) {
+        break; // No more comments
+      }
+
+      for (const comment of response.data) {
+        if (processedCount >= maxComments) break;
+        yield comment;
+        processedCount++;
+      }
+
+      offset += response.data.length;
+
+      // If we got fewer comments than requested, we've reached the end
+      if (response.data.length < batchSize) {
+        break;
+      }
+    }
   }
 }

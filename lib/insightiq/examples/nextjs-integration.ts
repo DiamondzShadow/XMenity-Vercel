@@ -40,8 +40,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Comments analysis error:', error);
     
-    if (error instanceof Error && error.message.startsWith('{')) {
-      const apiError = JSON.parse(error.message);
+    // Handle APIError instances
+    if (error instanceof Error && 'status' in error) {
+      const apiError = error as any; // APIError
       return NextResponse.json(
         { error: apiError.message, details: apiError.details },
         { status: apiError.status || 500 }
@@ -329,13 +330,19 @@ export default function CommentsAnalysis() {
     try {
       const result = await startAnalysis(formData);
       
-      // Poll for results every 5 seconds
-      const pollInterval = setInterval(async () => {
-        const results = await getResults(result.analysis_id);
-        if (results.insights.status === 'SUCCESS') {
-          clearInterval(pollInterval);
+      // Poll for results every 5 seconds using recursive setTimeout
+      const poll = async () => {
+        try {
+          const results = await getResults(result.analysis_id);
+          if (results.insights.status !== 'SUCCESS' && results.insights.status !== 'FAILURE') {
+            setTimeout(poll, 5000);
+          }
+        } catch (error) {
+          console.error('Polling error:', error);
+          // Optionally stop polling on errors or retry with backoff
         }
-      }, 5000);
+      };
+      setTimeout(poll, 5000);
 
     } catch (error) {
       console.error('Analysis failed:', error);
