@@ -62,7 +62,7 @@
 
 **Final Token Balance**: `100001000000000000000000000` (100,001,000 tokens)
 - **Initial Supply**: 100,000,000 tokens
-- **Reward Claimed**: 1,000 tokens
+- **Reward Claimed**: 1,000 tokens  
 - **Total Balance**: 100,001,000 tokens ✅
 
 ## 🔍 Technical Analysis

@@ -37,7 +37,7 @@ Successfully deployed TokenFactory and ModularToken contracts on Chain ID: **150
 ### ModularToken Configuration
 - **Name**: "CreatorName Token"
 - **Symbol**: "CRTR"
-- **Initial Supply**: 100,000,000,000,000,000,000,000 (1e23)
+- **Initial Supply**: 100,000,000 tokens (1e26 wei, with 18 decimals)
 - **Initial Data**: "Initial creator data"
 
 ### Metrics Configuration
@@ -49,9 +49,15 @@ Successfully deployed TokenFactory and ModularToken contracts on Chain ID: **150
 - authenticity_score
 - growth_rate
 
-**Thresholds**: [1000, 5000, 10000, 3, 5, 8, 100000, 500000, 1000000, 60, 70, 80, 70, 80, 90, 5, 10, 15]
-
-**Multipliers**: [1, 2, 3, 1, 2, 3, 2, 4, 6, 3, 5, 7, 2, 4, 6, 2, 3, 4]
+**Thresholds & Multipliers**:
+| Metric             | Threshold 1 | Threshold 2 | Threshold 3 | Multiplier 1 | Multiplier 2 | Multiplier 3 |
+|--------------------|-------------|-------------|-------------|--------------|--------------|--------------|
+| followers          | 1,000       | 5,000       | 10,000      | 1x           | 2x           | 3x           |
+| engagement_rate    | 3           | 5           | 8           | 1x           | 2x           | 3x           |
+| reach              | 100,000     | 500,000     | 1,000,000   | 2x           | 4x           | 6x           |
+| influence_score    | 60          | 70          | 80          | 3x           | 5x           | 7x           |
+| authenticity_score | 70          | 80          | 90          | 2x           | 4x           | 6x           |
+| growth_rate        | 5           | 10          | 15          | 2x           | 3x           | 4x           |
 
 ## Deployment Scripts Used
 
@@ -66,6 +72,7 @@ forge script script/DeployFactory.s.sol \
 
 ### ModularToken Deployment
 ```bash
+# Note: Private key is automatically read from environment variable PRIVATE_KEY
 forge script script/DeployModularToken.s.sol \
     --rpc-url custom_arb \
     --broadcast \
@@ -83,8 +90,8 @@ forge script script/DeployModularToken.s.sol \
 - **Total Gas Used**: 5,134,668 gas
 
 ## Transaction Files
-- TokenFactory: `/home/di0zchain/token-factory-project/broadcast/DeployFactory.s.sol/150179125/run-latest.json`
-- ModularToken: `/home/di0zchain/token-factory-project/broadcast/DeployModularToken.s.sol/150179125/run-latest.json`
+- TokenFactory: `broadcast/DeployFactory.s.sol/150179125/run-latest.json`
+- ModularToken: `broadcast/DeployModularToken.s.sol/150179125/run-latest.json`
 
 ## Next Steps
 1. **Verify Contracts**: Consider verifying the deployed contracts on the block explorer
@@ -111,15 +118,17 @@ address newToken = tokenFactory.deployModularToken(
 
 ### ModularToken Interactions
 ```solidity
-// Update creator metrics
-modularToken.updateCreatorMetrics(
-    creator,
-    newMetricValues,
-    "Updated creator data"
+// Update specific metric value
+modularToken.updateMetricValue(
+    "followers",
+    1500
 );
 
-// Get token multiplier
-uint256 multiplier = modularToken.getTokenMultiplier(creator);
+// Claim reward for metric
+modularToken.claimReward("followers");
+
+// Get current metrics
+(string[] memory names, uint256[] memory values, , ) = modularToken.getMetrics();
 ```
 
 ---

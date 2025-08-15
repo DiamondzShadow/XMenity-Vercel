@@ -121,6 +121,8 @@ cast send $TOKEN_ADDRESS \
 ### 1. Deploy New ModularToken
 ```bash
 # Deploy a new token through the factory
+# Note: thresholds and multipliers are flattened into single arrays
+# For 3 metrics with 3 thresholds each, the arrays should have 9 elements
 cast send $FACTORY_ADDRESS \
     "deployModularToken(string,string,uint256,string[],uint256[],uint256[],address,bytes)" \
     "My Creator Token" \
@@ -228,7 +230,7 @@ done
 1. **Private Key Management**: Never expose your private key in scripts or logs
 2. **Access Control**: Only the creator can update metrics and claim rewards
 3. **Threshold Verification**: Always check current metric values before claiming
-4. **Gas Estimation**: Use `--gas-estimate` flag for complex operations
+4. **Gas Estimation**: Use `cast estimate` for complex operations
 5. **Transaction Verification**: Always verify transaction success in block explorer
 
 ## 🔍 Debugging & Monitoring
