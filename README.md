@@ -1,257 +1,407 @@
-# XMenity Tube Frontend
+# InsightIQ AI Connect SDK
 
-A modern Web3 social token platform built with Next.js, Supabase, and Thirdweb.
+A comprehensive TypeScript/JavaScript SDK for the InsightIQ AI Connect API, enabling seamless integration with creator platform data and analytics.
 
-## 🚀 Features
+## Features
 
-- **Social Token Creation**: Deploy milestone-based social tokens with dynamic tokenomics
-- **InsightIQ Integration**: Verify influencers and calculate tokenomics based on real social metrics
-- **Web3 Integration**: Full blockchain integration with Arbitrum
-- **Real-time Analytics**: Track token performance and social metrics
-- **Modern UI**: Built with Next.js 14, TypeScript, and Tailwind CSS
+- **Complete API Coverage**: All InsightIQ Connect endpoints supported
+- **TypeScript Support**: Full type safety with comprehensive interfaces
+- **Automatic Retries**: Built-in retry logic for network failures
+- **Error Handling**: Structured error classes with detailed information
+- **Pagination Support**: Automatic pagination handling for large datasets
+- **Rate Limiting**: Proper rate limit handling with retry-after support
+- **Webhook Integration**: Types and utilities for webhook handling
 
-## 🛠 Tech Stack
+## Supported Products
 
-- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
-- **Database**: Supabase (PostgreSQL)
-- **Authentication**: Supabase Auth + JWT
-- **Storage**: Supabase Storage
-- **Blockchain**: Thirdweb, Arbitrum
-- **Analytics**: Custom analytics with Supabase
+- **Identity**: User profile data and audience demographics
+- **Engagement**: Content performance, comments, and social metrics
+- **Activity**: User listening/viewing history and preferences
+- **Content Management**: Social posts, videos, playlists, and content groups
 
-## 📦 Dependencies
-
-### Core Dependencies
-- `@supabase/supabase-js` - Supabase client
-- `@supabase/auth-helpers-nextjs` - Supabase auth helpers
-- `@thirdweb-dev/react` & `@thirdweb-dev/sdk` - Web3 integration
-- `@prisma/client` - Database ORM
-- `next` - React framework
-- `typescript` - Type safety
-
-### UI Components
-- `@radix-ui/*` - Headless UI components
-- `lucide-react` - Icons
-- `tailwindcss` - Styling
-- `clsx` & `tailwind-merge` - Conditional styling
-
-## 🔧 Environment Variables
-
-Copy `.env.example` to `.env.local` and fill in your configuration:
+## Installation
 
 ```bash
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-
-# JWT Secret
-JWT_SECRET=your_jwt_secret
-
-# Thirdweb
-THIRDWEB_SECRET_KEY=your_thirdweb_key
-SOCIAL_TOKEN_FACTORY_ADDRESS=your_factory_address
-
-# InsightIQ
-INSIGHTIQ_API_KEY=your_insightiq_key
+npm install insightiq-sdk
+# or
+yarn add insightiq-sdk
 ```
 
-## 🗄️ Database Setup
+## Quick Start
 
-1. Create a new Supabase project at [supabase.com](https://supabase.com)
-2. Run the migration file to set up your database schema:
-   ```sql
-   -- Run the contents of supabase/migrations/001_initial_schema.sql
-   ```
-3. Configure your environment variables with your Supabase credentials
+```typescript
+import { InsightIQClient, Products } from 'insightiq-sdk';
 
-## 🚀 Getting Started
+// Initialize the client
+const client = new InsightIQClient({
+  username: 'your-username',
+  password: 'your-password',
+  baseUrl: 'https://api.sandbox.insightiq.ai/v1', // Optional, defaults to sandbox
+});
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd xmenity-tube-frontend
-   ```
+// Test connection
+const isConnected = await client.testConnection();
+console.log('Connected:', isConnected);
 
-2. **Install dependencies**
-   ```bash
-   pnpm install
-   ```
+// Create a user
+const user = await client.users.create({
+  name: 'John Doe',
+  external_id: 'user_12345'
+});
 
-3. **Set up environment variables**
-   ```bash
-   cp .env.example .env.local
-   # Fill in your environment variables
-   ```
+// Create SDK token for Connect integration
+const sdkToken = await client.tokens.createSDKToken({
+  user_id: user.id,
+  products: [Products.IDENTITY, Products.ENGAGEMENT, Products.ACTIVITY]
+});
 
-4. **Set up the database**
-   - Create a Supabase project
-   - Run the migration SQL in your Supabase SQL editor
-   - Update your DATABASE_URL in .env.local
-
-5. **Generate Prisma client**
-   ```bash
-   pnpm db:generate
-   ```
-
-6. **Run the development server**
-   ```bash
-   pnpm dev
-   ```
-
-7. **Open your browser**
-   Navigate to [http://localhost:3000](http://localhost:3000)
-
-## 📂 Project Structure
-
-```
-├── app/                 # Next.js 14 app directory
-│   ├── api/            # API routes
-│   ├── components/     # Page components
-│   └── globals.css     # Global styles
-├── components/         # Reusable UI components
-├── lib/               # Utility functions and configurations
-│   ├── supabase.ts    # Supabase client and operations
-│   └── utils.ts       # Helper utilities
-├── supabase/          # Database migrations and config
-├── types/            # TypeScript type definitions
-└── prisma/           # Database schema and migrations
+// Create connection link
+const link = await client.links.create({
+  name: 'John Connection',
+  external_id: 'connection_12345'
+});
 ```
 
-## 📊 Token Economics
+## Core Services
 
-### Minting Rules
-- **Per Follower**: Mint tokens based on follower count
-- **Milestone Based**: Reward achievement of specific goals
-- **Manual**: Creator-controlled token distribution
-- **Engagement**: Reward based on interaction metrics
+### Users
 
-### Influence Tiers
-- **Mega Influencer**: 100K+ followers, 80+ influence score
-- **Macro Influencer**: 10K+ followers, 70+ influence score  
-- **Micro Influencer**: 1K+ followers, 60+ influence score
-- **Nano Influencer**: 100+ followers, 40+ influence score
+```typescript
+// Create user
+const user = await client.users.create({
+  name: 'John Doe',
+  external_id: 'user_123'
+});
 
-## 🔌 API Documentation
+// Get user by ID
+const user = await client.users.get('user-uuid');
 
-### Authentication
-\`\`\`javascript
-// Get nonce for signing
-POST /api/auth/nonce
-{
-  "walletAddress": "0x..."
+// Get user by external ID
+const user = await client.users.getByExternalId('user_123');
+
+// List users with pagination
+const users = await client.users.list({ limit: 50, offset: 0 });
+
+// Get all users (handles pagination automatically)
+const allUsers = await client.users.getAll();
+```
+
+### Accounts
+
+```typescript
+// Get account
+const account = await client.accounts.get('account-uuid');
+
+// List accounts with filtering
+const accounts = await client.accounts.list({
+  user_id: 'user-uuid',
+  work_platform_id: 'platform-uuid'
+});
+
+// Disconnect account
+await client.accounts.disconnect('account-uuid');
+
+// Get accounts by user
+const userAccounts = await client.accounts.getByUserId('user-uuid');
+```
+
+### Work Platforms
+
+```typescript
+// List all platforms
+const platforms = await client.workPlatforms.list();
+
+// Get platform by ID
+const platform = await client.workPlatforms.get('platform-uuid');
+
+// Find platforms by name
+const instagramPlatforms = await client.workPlatforms.findByName('Instagram');
+```
+
+### Profiles (Identity)
+
+```typescript
+// Get profile
+const profile = await client.profiles.get('profile-uuid');
+
+// List profiles with filtering
+const profiles = await client.profiles.list({
+  account_id: 'account-uuid',
+  limit: 10
+});
+
+// Refresh profile data
+await client.profiles.refresh('account-uuid');
+
+// Get profiles by account
+const accountProfiles = await client.profiles.getByAccountId('account-uuid');
+```
+
+### Audience Demographics
+
+```typescript
+// Get audience demographics
+const demographics = await client.audience.getDemographics('account-uuid');
+
+console.log('Countries:', demographics.countries);
+console.log('Cities:', demographics.cities);
+console.log('Age/Gender distribution:', demographics.gender_age_distribution);
+```
+
+### Content (Engagement)
+
+```typescript
+// List content items
+const contents = await client.contents.list({
+  account_id: 'account-uuid',
+  from_date: '2023-01-01',
+  to_date: '2023-12-31',
+  limit: 50
+});
+
+// Get specific content
+const content = await client.contents.get('content-uuid');
+
+// Get recent content (last 30 days)
+const recentContent = await client.contents.getRecent('account-uuid');
+
+// Refresh content data
+await client.contents.refresh('account-uuid');
+
+// Fetch historic content
+await client.contents.fetchHistoric('account-uuid', '2023-01-01');
+
+// Bulk search
+const bulkContents = await client.contents.searchBulk(['uuid1', 'uuid2']);
+```
+
+### Content Groups
+
+```typescript
+// List content groups (playlists, albums)
+const groups = await client.contentGroups.list({
+  account_id: 'account-uuid',
+  limit: 20
+});
+
+// Get specific content group
+const group = await client.contentGroups.get('group-uuid');
+
+// Refresh content groups
+await client.contentGroups.refresh('account-uuid');
+```
+
+### Comments
+
+```typescript
+// List comments for content
+const comments = await client.comments.list({
+  account_id: 'account-uuid',
+  content_id: 'content-uuid',
+  limit: 100
+});
+
+// Get all comments for content
+const allComments = await client.comments.getAllForContent(
+  'account-uuid',
+  'content-uuid'
+);
+
+// Get recent comments
+const recentComments = await client.comments.getRecent(
+  'account-uuid',
+  'content-uuid'
+);
+```
+
+### Activity Artists
+
+```typescript
+// Get activity artists
+const artists = await client.activityArtists.list({
+  account_id: 'account-uuid'
+});
+
+// Get specific artist
+const artist = await client.activityArtists.get('artist-uuid');
+
+// Get followed artists
+const followedArtists = await client.activityArtists.getFollowedArtists('account-uuid');
+
+// Get top artists
+const topArtists = await client.activityArtists.getTopArtists('account-uuid');
+
+// Get artists by genre
+const rockArtists = await client.activityArtists.getByGenre('account-uuid', 'rock');
+```
+
+### Activity Contents
+
+```typescript
+// Get activity contents
+const contents = await client.activityContents.list({
+  account_id: 'account-uuid'
+});
+
+// Get by activity type
+const topContents = await client.activityContents.getTopContents('account-uuid');
+const recentContents = await client.activityContents.getRecentContents('account-uuid');
+const savedContents = await client.activityContents.getSavedContents('account-uuid');
+
+// Get by genre/artist/album
+const jazzContents = await client.activityContents.getByGenre('account-uuid', 'jazz');
+const artistContents = await client.activityContents.getByArtist('account-uuid', 'Beatles');
+const albumContents = await client.activityContents.getByAlbum('account-uuid', 'Abbey Road');
+```
+
+## Configuration Options
+
+```typescript
+const client = new InsightIQClient({
+  username: 'your-username',
+  password: 'your-password',
+  baseUrl: 'https://api.sandbox.insightiq.ai/v1', // Optional
+  timeout: 30000, // Optional, default 30s
+  retryAttempts: 3, // Optional, default 3
+  retryDelay: 1000, // Optional, default 1s
+});
+```
+
+## Error Handling
+
+The SDK provides structured error classes:
+
+```typescript
+import { 
+  AuthenticationError,
+  AuthorizationError,
+  NotFoundError,
+  ValidationError,
+  RateLimitError,
+  ServerError,
+  NetworkError 
+} from 'insightiq-sdk';
+
+try {
+  const user = await client.users.get('invalid-id');
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.log('User not found');
+  } else if (error instanceof AuthenticationError) {
+    console.log('Authentication failed');
+  } else if (error instanceof RateLimitError) {
+    console.log('Rate limited, retry after:', error.retryAfter);
+  }
 }
+```
 
-// Verify signature and get JWT
-POST /api/auth/verify
-{
-  "walletAddress": "0x...",
-  "signature": "0x...",
-  "message": "Sign-in message"
+## Pagination
+
+Most list methods support pagination:
+
+```typescript
+// Manual pagination
+const firstPage = await client.users.list({ limit: 50, offset: 0 });
+const secondPage = await client.users.list({ limit: 50, offset: 50 });
+
+// Automatic pagination (convenience method)
+const allUsers = await client.users.getAll();
+```
+
+## Date Ranges
+
+Use ISO 8601 date format (YYYY-MM-DD) for date parameters:
+
+```typescript
+const contents = await client.contents.list({
+  account_id: 'account-uuid',
+  from_date: '2023-01-01',
+  to_date: '2023-12-31'
+});
+```
+
+## Webhook Integration
+
+The SDK includes types for webhook payloads:
+
+```typescript
+import type { 
+  Profile,
+  Content,
+  ActivityArtist,
+  ActivityContent 
+} from 'insightiq-sdk';
+
+// Use these types when handling webhook data
+function handleProfileUpdate(profile: Profile) {
+  console.log('Profile updated:', profile.id);
 }
-\`\`\`
+```
 
-### Token Management
-\`\`\`javascript
-// Create new token
-POST /api/tokens
-Headers: { Authorization: "Bearer <jwt>" }
-{
-  "name": "CreatorCoin",
-  "symbol": "CREATE",
-  "description": "My social token",
-  "contractAddress": "0x...",
-  "mintingRule": "per_follower"
-}
+## Production Usage
 
-// Get tokens with pagination
-GET /api/tokens?page=1&limit=10&search=creator
-\`\`\`
+For production, use the live API:
 
-## 🧪 Testing
+```typescript
+const client = new InsightIQClient({
+  username: 'your-username',
+  password: 'your-password',
+  baseUrl: 'https://api.insightiq.ai/v1', // Production endpoint
+});
+```
 
-\`\`\`bash
-# Run tests
-npm test
+## Examples
 
-# Run with coverage
-npm run test:coverage
+See the `/examples` directory for comprehensive usage examples:
 
-# Watch mode
-npm run test:watch
-\`\`\`
+- `basic-usage.ts` - Basic SDK operations
+- `analytics-dashboard.ts` - Building analytics dashboards
+- `webhook-handler.ts` - Processing webhook events
 
-## 📈 Monitoring & Analytics
+## TypeScript Support
 
-### Built-in Analytics
-- Token performance tracking
-- User engagement metrics
-- Transaction monitoring
-- Real-time notifications
-- Revenue analytics
+The SDK is written in TypeScript and provides complete type definitions:
 
-### External Integrations
-- **InsightIQ**: Social media influence scoring
-- **Firebase**: Real-time database & analytics
-- **Thirdweb**: Blockchain infrastructure
-- **Twitter API**: Social media data
+```typescript
+import type { 
+  User,
+  Account,
+  Profile,
+  Content,
+  AudienceDemographics,
+  ActivityArtist,
+  ActivityContent
+} from 'insightiq-sdk';
+```
 
-## 🛡️ Security
+## Rate Limiting
 
-### Authentication Security
-- JWT with secure secrets
-- SIWE signature verification
-- Rate limiting per IP
-- Wallet-based authentication
+The SDK automatically handles rate limits:
 
-### Data Protection
-- Environment variable validation
-- SQL injection prevention (Prisma)
-- XSS protection headers
-- CORS configuration
+- Detects 429 responses
+- Implements exponential backoff
+- Respects `Retry-After` headers
+- Configurable retry attempts
 
-### Smart Contract Security
-- Audited token factory contracts
-- Multi-sig wallet support
-- Emergency pause functionality
-- Upgrade protection
-
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open Pull Request
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Submit a pull request
 
-## 📚 Documentation
+## License
 
-- [Quick Start Guide](./QUICK_START_GUIDE.md)
-- [Deployment Guide](./DEPLOYMENT_GUIDE.md)
-- [API Documentation](./INTEGRATION_ARCHITECTURE.md)
-- [Smart Contract Docs](./TOKEN_FACTORY_DEPLOYMENT.md)
+MIT License - see LICENSE file for details.
 
-## 📄 License
+## Support
 
-MIT License - see [LICENSE](LICENSE) file for details.
-
-## 🆘 Support
-
-- **Issues**: [GitHub Issues](https://github.com/DiamondzShadow/XMenity-Vercel/issues)
-- **Discord**: [Join our community](https://discord.gg/xmenity)
-- **Email**: development@diamondzshadow.com
-
-## 🎯 Roadmap
-
-- [ ] Mobile app development
-- [ ] Multi-chain support (Ethereum, Polygon)
-- [ ] NFT integration
-- [ ] Advanced analytics dashboard
-- [ ] Creator marketplace
-- [ ] Governance token features
+For API documentation and support:
+- [InsightIQ API Documentation](https://docs.insightiq.ai)
+- [Developer Portal](https://developers.insightiq.ai)
+- Email: support@insightiq.ai
 
 ---
 
-**Built with ❤️ by the XMenity Team**
-
-*Empowering creators in the Web3 economy*
+Built with ❤️ for the creator economy
