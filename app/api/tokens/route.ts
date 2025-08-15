@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { PrismaClient } from "@prisma/client"
+import { firebaseOperations } from "@/lib/firebase"
 import jwt from "jsonwebtoken"
 
 const prisma = new PrismaClient()
@@ -128,6 +129,12 @@ export async function POST(request: NextRequest) {
 
     if (!name || !symbol || !contractAddress) {
       throw new ValidationError("Missing required fields: name, symbol, or contractAddress")
+    }
+
+    // Check symbol uniqueness using efficient query
+    const existingSymbolToken = await firebaseOperations.getTokenBySymbol(symbol)
+    if (existingSymbolToken) {
+      throw new ValidationError("Token symbol already exists")
     }
 
     const token = await prisma.token.create({

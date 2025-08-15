@@ -7,7 +7,8 @@ const prisma = new PrismaClient()
 
 export async function POST(request: NextRequest) {
   try {
-    const { walletAddress, signature, message } = await request.json()
+    const body = await request.json()
+    const { walletAddress, signature, message } = body
 
     if (!walletAddress || !signature || !message) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
