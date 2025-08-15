@@ -153,8 +153,8 @@ const tokenMetrics = [
 ### **Environment Variables:**
 ```env
 # InsightIQ API Configuration
-INSIGHTIQ_CLIENT_ID=62b74562-505d-4062-aa18-8ed30298b243
-INSIGHTIQ_CLIENT_SECRET=f1a58605-ae7e-4450-8c92-3ada5dfcaabd
+INSIGHTIQ_CLIENT_ID=[YOUR_INSIGHTIQ_CLIENT_ID]
+INSIGHTIQ_CLIENT_SECRET=[YOUR_INSIGHTIQ_CLIENT_SECRET]
 INSIGHTIQ_BASE_URL=https://api.staging.insightiq.ai/v1
 
 # Supabase Configuration (Required)

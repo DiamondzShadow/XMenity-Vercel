@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { insightiq } from "@/lib/insightiq"
 import { createServerSupabaseClient } from "@/lib/supabase"
+import { API_CONFIG } from "@/lib/constants"
 import jwt from "jsonwebtoken"
 
 export async function POST(request: NextRequest) {
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
     const { profile } = verificationResult
     const supabase = createServerSupabaseClient()
 
-    // Create or update user profile in Supabase
+    // Create or update user profile in Supabase using upsert for atomic operation
     const userProfileData = {
       wallet_address: walletAddress.toLowerCase(),
       display_name: profile!.displayName,
@@ -49,38 +50,22 @@ export async function POST(request: NextRequest) {
       updated_at: new Date().toISOString(),
     }
 
-    const { data: existingUser } = await supabase
+    const { data: userData, error } = await supabase
       .from("users")
-      .select("*")
-      .eq("wallet_address", walletAddress.toLowerCase())
+      .upsert(userProfileData, { 
+        onConflict: "wallet_address",
+        defaultToNull: false 
+      })
+      .select()
       .single()
-
-    let userData
-    if (existingUser) {
-      const { data, error } = await supabase
-        .from("users")
-        .update(userProfileData)
-        .eq("wallet_address", walletAddress.toLowerCase())
-        .select()
-        .single()
-      
-      if (error) throw error
-      userData = data
-    } else {
-      const { data, error } = await supabase
-        .from("users")
-        .insert({
-          id: crypto.randomUUID(),
-          ...userProfileData,
-        })
-        .select()
-        .single()
-      
-      if (error) throw error
-      userData = data
-    }
+    
+    if (error) throw error
 
     // Generate JWT token for authentication
+    if (!process.env.JWT_SECRET) {
+      throw new Error("JWT_SECRET environment variable is required")
+    }
+    
     const authToken = jwt.sign(
       {
         userId: userData.id,
@@ -89,8 +74,8 @@ export async function POST(request: NextRequest) {
         verificationLevel: verificationResult.verificationLevel,
         insightiqVerified: true,
       },
-      process.env.JWT_SECRET || "fallback-secret",
-      { expiresIn: "7d" },
+      process.env.JWT_SECRET,
+      { expiresIn: API_CONFIG.jwtExpiration },
     )
 
     // Get milestone configuration for token creation

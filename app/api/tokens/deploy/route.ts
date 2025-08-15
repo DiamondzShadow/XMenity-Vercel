@@ -3,6 +3,7 @@ import { firebaseOperations } from "@/lib/firebase"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { insightiq } from "@/lib/insightiq"
 import { ThirdwebSDK } from "@thirdweb-dev/sdk"
+import { TOKEN_METRICS, API_CONFIG } from "@/lib/constants"
 import jwt from "jsonwebtoken"
 
 interface AuthToken {
@@ -24,7 +25,10 @@ export async function POST(request: NextRequest) {
     let decodedToken: AuthToken
 
     try {
-      decodedToken = jwt.verify(token, process.env.JWT_SECRET || "fallback-secret") as AuthToken
+      if (!process.env.JWT_SECRET) {
+        throw new Error("JWT_SECRET environment variable is required")
+      }
+      decodedToken = jwt.verify(token, process.env.JWT_SECRET) as AuthToken
     } catch (jwtError) {
       return NextResponse.json({ success: false, error: "Invalid authentication token" }, { status: 401 })
     }
@@ -58,32 +62,25 @@ export async function POST(request: NextRequest) {
     const profile = await insightiq.getProfile(userData.twitter_username)
     const milestones = await insightiq.getMilestoneConfig(profile)
 
-    // Convert metrics to blockchain format
-    const tokenMetrics = [
-      "followers",
-      "engagement_rate", 
-      "reach",
-      "influence_score",
-      "authenticity_score",
-      "growth_rate"
-    ]
+    // Convert metrics to blockchain format using constants
+    const tokenMetrics = TOKEN_METRICS.names
 
     const tokenThresholds = [
       milestones.followerMilestones.milestones.map(m => m.threshold),
-      [3, 5, 8, 12], // engagement rate thresholds
+      TOKEN_METRICS.thresholds.engagement,
       milestones.reachMilestones.milestones.map(m => m.threshold),
-      [60, 70, 80, 90], // influence score thresholds
-      [70, 80, 90, 95], // authenticity score thresholds
-      [5, 10, 15, 25]   // growth rate thresholds
+      TOKEN_METRICS.thresholds.influence,
+      TOKEN_METRICS.thresholds.authenticity,
+      TOKEN_METRICS.thresholds.growthRate
     ].flat()
 
     const tokenWeights = [
       milestones.followerMilestones.milestones.map(m => m.reward),
-      [1, 2, 3, 5], // engagement rate rewards
+      TOKEN_METRICS.rewards.engagement,
       milestones.reachMilestones.milestones.map(m => m.reward),
-      [2, 3, 5, 8], // influence score rewards
-      [1, 2, 4, 6], // authenticity score rewards
-      [1, 2, 3, 5]  // growth rate rewards
+      TOKEN_METRICS.rewards.influence,
+      TOKEN_METRICS.rewards.authenticity,
+      TOKEN_METRICS.rewards.growthRate
     ].flat()
 
     // Initialize Thirdweb SDK
@@ -113,8 +110,8 @@ export async function POST(request: NextRequest) {
       const receipt = await tx.receipt
       const tokenAddress = receipt.logs[0]?.address || ""
 
-      // Generate token ID
-      const tokenId = `${symbol.toLowerCase()}_${Date.now()}`
+      // Generate consistent token ID for both databases
+      const tokenId = crypto.randomUUID()
 
       // Create comprehensive token data
       const tokenData = {
@@ -155,7 +152,7 @@ export async function POST(request: NextRequest) {
       await Promise.all([
         firebaseOperations.createToken(tokenId, tokenData),
         supabase.from("tokens").insert({
-          id: crypto.randomUUID(),
+          id: tokenId,
           contract_address: tokenAddress,
           name,
           symbol: symbol.toUpperCase(),
@@ -185,7 +182,7 @@ export async function POST(request: NextRequest) {
       console.error("Contract deployment failed:", contractError)
 
       // For testing purposes, create a mock deployment with full metrics
-      const tokenId = `${symbol.toLowerCase()}_${Date.now()}`
+      const tokenId = crypto.randomUUID()
       const mockAddress = `0x${Math.random().toString(16).substr(2, 40)}`
 
       const tokenData = {
@@ -223,11 +220,11 @@ export async function POST(request: NextRequest) {
         tokenMetrics: metrics.tokenMetrics,
       }
 
-      await Promise.all([
-        firebaseOperations.createToken(tokenId, tokenData),
-        supabase.from("tokens").insert({
-          id: crypto.randomUUID(),
-          contract_address: mockAddress,
+              await Promise.all([
+          firebaseOperations.createToken(tokenId, tokenData),
+          supabase.from("tokens").insert({
+            id: tokenId,
+            contract_address: mockAddress,
           name,
           symbol: symbol.toUpperCase(),
           description: description || "",

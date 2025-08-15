@@ -1,3 +1,12 @@
+import { 
+  VERIFICATION_THRESHOLDS, 
+  TOKEN_CREATION_REQUIREMENTS, 
+  MILESTONE_THRESHOLDS, 
+  MILESTONE_CONFIGS,
+  API_CONFIG,
+  type VerificationLevel 
+} from "@/lib/constants"
+
 interface InsightIQProfile {
   id: string
   username: string
@@ -73,7 +82,7 @@ interface CreatorVerificationResult {
   profile?: InsightIQProfile
   token?: string
   error?: string
-  verificationLevel: 'basic' | 'verified' | 'premium' | 'elite'
+  verificationLevel: VerificationLevel
   eligibleForTokenCreation: boolean
 }
 
@@ -174,24 +183,32 @@ class InsightIQClient {
     }
   }
 
-  private getVerificationLevel(profile: InsightIQProfile): 'basic' | 'verified' | 'premium' | 'elite' {
+  private getVerificationLevel(profile: InsightIQProfile): VerificationLevel {
     const { followers, metrics } = profile
     const { authenticity, influence, qualityScore } = metrics
 
-    if (followers >= 100000 && authenticity >= 85 && influence >= 80 && qualityScore >= 90) {
+    const elite = VERIFICATION_THRESHOLDS.ELITE
+    const premium = VERIFICATION_THRESHOLDS.PREMIUM
+    const verified = VERIFICATION_THRESHOLDS.VERIFIED
+
+    if (followers >= elite.followers && authenticity >= elite.authenticity && 
+        influence >= elite.influence && qualityScore >= elite.qualityScore) {
       return 'elite'
-    } else if (followers >= 10000 && authenticity >= 75 && influence >= 70 && qualityScore >= 80) {
+    } else if (followers >= premium.followers && authenticity >= premium.authenticity && 
+               influence >= premium.influence && qualityScore >= premium.qualityScore) {
       return 'premium'
-    } else if (followers >= 1000 && authenticity >= 65 && influence >= 60 && qualityScore >= 70) {
+    } else if (followers >= verified.followers && authenticity >= verified.authenticity && 
+               influence >= verified.influence && qualityScore >= verified.qualityScore) {
       return 'verified'
     }
     return 'basic'
   }
 
   private isEligibleForTokenCreation(profile: InsightIQProfile): boolean {
-    return profile.followers >= 100 && 
-           profile.metrics.authenticity >= 50 && 
-           profile.metrics.qualityScore >= 60
+    const req = TOKEN_CREATION_REQUIREMENTS
+    return profile.followers >= req.minFollowers && 
+           profile.metrics.authenticity >= req.minAuthenticity && 
+           profile.metrics.qualityScore >= req.minQualityScore
   }
 
   private generateMockProfile(username: string): InsightIQProfile {
@@ -260,9 +277,9 @@ class InsightIQClient {
         }
       }
 
-      const followerMilestones = [1000, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000]
-      const engagementMilestones = [2, 4, 6, 8, 10, 15, 20]
-      const reachMilestones = [10000, 50000, 100000, 500000, 1000000, 5000000, 10000000]
+      const followerMilestones = MILESTONE_THRESHOLDS.followers
+      const engagementMilestones = MILESTONE_THRESHOLDS.engagement
+      const reachMilestones = MILESTONE_THRESHOLDS.reach
 
       return {
         followers: profile.followers,
@@ -328,8 +345,8 @@ class InsightIQClient {
         throw new Error("Failed to update metrics")
       }
 
-      // Wait a moment for metrics to update, then fetch
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // Wait for metrics to update, then fetch
+      await new Promise(resolve => setTimeout(resolve, API_CONFIG.defaultTimeout))
       return await this.getTokenMetrics(username)
     } catch (error) {
       console.error("Error updating metrics:", error)
@@ -344,32 +361,24 @@ class InsightIQClient {
     return {
       followerMilestones: {
         current: profile.followers,
-        milestones: [
-          { threshold: 1000, reward: 1, achieved: profile.followers >= 1000 },
-          { threshold: 5000, reward: 2, achieved: profile.followers >= 5000 },
-          { threshold: 10000, reward: 3, achieved: profile.followers >= 10000 },
-          { threshold: 25000, reward: 5, achieved: profile.followers >= 25000 },
-          { threshold: 50000, reward: 8, achieved: profile.followers >= 50000 },
-          { threshold: 100000, reward: 12, achieved: profile.followers >= 100000 },
-        ]
+        milestones: MILESTONE_CONFIGS.follower.map(config => ({
+          ...config,
+          achieved: profile.followers >= config.threshold
+        }))
       },
       engagementMilestones: {
         current: profile.engagement.avgEngagementRate,
-        milestones: [
-          { threshold: 3, reward: 1, achieved: profile.engagement.avgEngagementRate >= 3 },
-          { threshold: 5, reward: 2, achieved: profile.engagement.avgEngagementRate >= 5 },
-          { threshold: 8, reward: 3, achieved: profile.engagement.avgEngagementRate >= 8 },
-          { threshold: 12, reward: 5, achieved: profile.engagement.avgEngagementRate >= 12 },
-        ]
+        milestones: MILESTONE_CONFIGS.engagement.map(config => ({
+          ...config,
+          achieved: profile.engagement.avgEngagementRate >= config.threshold
+        }))
       },
       reachMilestones: {
         current: profile.metrics.reach,
-        milestones: [
-          { threshold: 100000, reward: 2, achieved: profile.metrics.reach >= 100000 },
-          { threshold: 500000, reward: 4, achieved: profile.metrics.reach >= 500000 },
-          { threshold: 1000000, reward: 6, achieved: profile.metrics.reach >= 1000000 },
-          { threshold: 5000000, reward: 10, achieved: profile.metrics.reach >= 5000000 },
-        ]
+        milestones: MILESTONE_CONFIGS.reach.map(config => ({
+          ...config,
+          achieved: profile.metrics.reach >= config.threshold
+        }))
       }
     }
   }
