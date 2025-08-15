@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { storageOperations } from "@/lib/firebase"
+import { supabaseOperations } from "@/lib/supabase"
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,12 +30,13 @@ export async function POST(request: NextRequest) {
 
     if (tokenId) {
       // Upload token logo
-      downloadUrl = await storageOperations.uploadTokenLogo(file, tokenId)
+      const fileName = `token_logos/${tokenId}/${Date.now()}_${file.name}`
+      downloadUrl = await supabaseOperations.uploadFile(file, fileName)
     } else {
       // General file upload
       const timestamp = Date.now()
-      const fileName = `${timestamp}_${file.name}`
-      downloadUrl = await storageOperations.uploadFile(file, `uploads/${fileName}`)
+      const fileName = `uploads/${timestamp}_${file.name}`
+      downloadUrl = await supabaseOperations.uploadFile(file, fileName)
     }
 
     return NextResponse.json({

@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { insightIQ } from "@/lib/insightiq"
-import { firebaseOperations } from "@/lib/firebase"
+import { supabaseOperations } from "@/lib/supabase"
 import jwt from "jsonwebtoken"
 
 export async function POST(request: NextRequest) {
@@ -55,23 +55,22 @@ export async function POST(request: NextRequest) {
 
     // Step 4: Create or update user profile with verification data
     const userData = {
-      walletAddress: walletAddress.toLowerCase(),
       username,
       platform,
-      insightiqId: insightiqUser.id,
+      insightiq_id: insightiqUser.id,
       followers: insightiqUser.followers,
-      engagementRate: insightiqUser.engagementRate,
-      influenceScore: insightiqUser.influenceScore,
+      engagement_rate: insightiqUser.engagementRate,
+      influence_score: insightiqUser.influenceScore,
       tier: verification.tier,
       verified: true,
-      verifiedAt: new Date(),
+      verified_at: new Date().toISOString(),
       tokenomics,
-      profileImage: insightiqUser.profileImage,
+      profile_image: insightiqUser.profileImage,
       bio: insightiqUser.bio,
     }
 
     // Save user profile to database
-    await firebaseOperations.createUserProfile(walletAddress, userData)
+    await supabaseOperations.createUserProfile(walletAddress, userData)
 
     // Step 5: Generate JWT token with verification data
     const token = jwt.sign(
