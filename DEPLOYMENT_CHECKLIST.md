@@ -49,6 +49,13 @@ INSIGHTIQ_CLIENT_SECRET=f1a58605-ae7e-4450-8c92-3ada5dfcaabd
 INSIGHTIQ_BASE_URL=https://api.staging.insightiq.ai/v1
 \`\`\`
 
+### ✅ Supabase Configuration (Required for Production)
+\`\`\`env
+NEXT_PUBLIC_SUPABASE_URL=[YOUR_SUPABASE_PROJECT_URL]
+NEXT_PUBLIC_SUPABASE_ANON_KEY=[YOUR_SUPABASE_ANON_KEY]
+SUPABASE_SERVICE_ROLE_KEY=[YOUR_SUPABASE_SERVICE_ROLE_KEY]
+\`\`\`
+
 ### ✅ Smart Contract Configuration (Your Settings)
 \`\`\`env
 ARBITRUM_RPC_URL=https://nameless-solemn-cherry.arbitrum-mainnet.quiknode.pro/a30fa1bc3689f3c94015f038c6bb30c0a3826555/

@@ -1,28 +1,125 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { insightIQClient } from "@/lib/insightiq"
+import { insightiq } from "@/lib/insightiq"
+import { createServerSupabaseClient } from "@/lib/supabase"
+import jwt from "jsonwebtoken"
 
 export async function POST(request: NextRequest) {
   try {
-    const { username, platform = "twitter" } = await request.json()
+    const { username, walletAddress } = await request.json()
 
-    if (!username) {
-      return NextResponse.json({ success: false, error: "Username is required" }, { status: 400 })
+    if (!username || !walletAddress) {
+      return NextResponse.json({ 
+        success: false, 
+        error: "Username and wallet address are required" 
+      }, { status: 400 })
     }
 
-    const result = await insightIQClient.verifyCreator(username, platform)
+    // Verify creator with InsightIQ
+    const verificationResult = await insightiq.verifyCreator(username, walletAddress)
 
-    if (!result.success) {
-      return NextResponse.json({ success: false, error: result.error || "Verification failed" }, { status: 400 })
+    if (!verificationResult.success) {
+      return NextResponse.json({ 
+        success: false, 
+        error: verificationResult.error || "Verification failed" 
+      }, { status: 400 })
     }
+
+    if (!verificationResult.eligibleForTokenCreation) {
+      return NextResponse.json({ 
+        success: false, 
+        error: "Creator profile does not meet minimum requirements for token creation" 
+      }, { status: 400 })
+    }
+
+    const { profile } = verificationResult
+    const supabase = createServerSupabaseClient()
+
+    // Create or update user profile in Supabase
+    const userProfileData = {
+      wallet_address: walletAddress.toLowerCase(),
+      display_name: profile!.displayName,
+      twitter_username: profile!.username,
+      twitter_id: profile!.id,
+      profile_image: profile!.profileImage,
+      follower_count: profile!.followers,
+      following_count: profile!.following,
+      tweet_count: profile!.tweets,
+      is_verified: profile!.verified,
+      verification_status: `insightiq_${verificationResult.verificationLevel}`,
+      updated_at: new Date().toISOString(),
+    }
+
+    const { data: existingUser } = await supabase
+      .from("users")
+      .select("*")
+      .eq("wallet_address", walletAddress.toLowerCase())
+      .single()
+
+    let userData
+    if (existingUser) {
+      const { data, error } = await supabase
+        .from("users")
+        .update(userProfileData)
+        .eq("wallet_address", walletAddress.toLowerCase())
+        .select()
+        .single()
+      
+      if (error) throw error
+      userData = data
+    } else {
+      const { data, error } = await supabase
+        .from("users")
+        .insert({
+          id: crypto.randomUUID(),
+          ...userProfileData,
+        })
+        .select()
+        .single()
+      
+      if (error) throw error
+      userData = data
+    }
+
+    // Generate JWT token for authentication
+    const authToken = jwt.sign(
+      {
+        userId: userData.id,
+        walletAddress: userData.wallet_address,
+        username: profile!.username,
+        verificationLevel: verificationResult.verificationLevel,
+        insightiqVerified: true,
+      },
+      process.env.JWT_SECRET || "fallback-secret",
+      { expiresIn: "7d" },
+    )
+
+    // Get milestone configuration for token creation
+    const milestoneConfig = await insightiq.getMilestoneConfig(profile!)
 
     return NextResponse.json({
       success: true,
-      profile: result.data,
-      verified: result.data?.verified || false,
+      user: {
+        id: userData.id,
+        walletAddress: userData.wallet_address,
+        displayName: userData.display_name,
+        username: userData.twitter_username,
+        profileImage: userData.profile_image,
+        followerCount: userData.follower_count,
+        isVerified: userData.is_verified,
+        verificationLevel: verificationResult.verificationLevel,
+        engagementRate: profile!.engagement.avgEngagementRate,
+        metrics: profile!.metrics,
+      },
+      token: authToken,
+      milestoneConfig,
+      profile: profile!,
     })
   } catch (error) {
     console.error("InsightIQ verification error:", error)
-    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ 
+      success: false, 
+      error: "Internal server error" 
+    }, { status: 500 })
   }
 }
 
@@ -30,34 +127,46 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const username = searchParams.get("username")
-    const platform = searchParams.get("platform") || "twitter"
-    const metricsParam = searchParams.get("metrics")
+    const action = searchParams.get("action")
 
     if (!username) {
-      return NextResponse.json({ success: false, error: "Username is required" }, { status: 400 })
+      return NextResponse.json({ 
+        success: false, 
+        error: "Username is required" 
+      }, { status: 400 })
     }
 
-    if (metricsParam) {
-      const metrics = metricsParam.split(",")
-      const result = await insightIQClient.getMetrics(username, platform, metrics)
+    switch (action) {
+      case "metrics":
+        const metrics = await insightiq.getTokenMetrics(username)
+        return NextResponse.json({
+          success: true,
+          username,
+          metrics,
+        })
 
-      return NextResponse.json({
-        success: true,
-        username,
-        platform,
-        metrics: result,
-      })
-    } else {
-      const result = await insightIQClient.verifyCreator(username, platform)
+      case "update":
+        const updatedMetrics = await insightiq.updateMetrics(username)
+        return NextResponse.json({
+          success: true,
+          username,
+          metrics: updatedMetrics,
+          updated: true,
+        })
 
-      return NextResponse.json({
-        success: result.success,
-        profile: result.data,
-        error: result.error,
-      })
+      case "profile":
+      default:
+        const profile = await insightiq.getProfile(username)
+        return NextResponse.json({
+          success: true,
+          profile,
+        })
     }
   } catch (error) {
     console.error("InsightIQ API error:", error)
-    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ 
+      success: false, 
+      error: "Internal server error" 
+    }, { status: 500 })
   }
 }
