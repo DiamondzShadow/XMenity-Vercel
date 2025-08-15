@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { firebaseOperations } from "@/lib/firebase"
+import { insightIQ } from "@/lib/insightiq"
 import { ThirdwebSDK } from "@thirdweb-dev/sdk"
 
 export async function POST(request: NextRequest) {

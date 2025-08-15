@@ -279,3 +279,196 @@ export const useFirebaseRtdb = () => {
   if (typeof window === 'undefined') return null;
   return rtdb;
 };
+
+// Firebase operations for application logic
+export const firebaseOperations = {
+  // Token operations
+  async createToken(tokenId: string, tokenData: any) {
+    if (!adminDb) throw new Error('Admin DB not initialized');
+    
+    try {
+      const tokenRef = adminDb.collection('tokens').doc(tokenId);
+      await tokenRef.set({
+        ...tokenData,
+        id: tokenId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      return tokenRef;
+    } catch (error) {
+      console.error('Error creating token:', error);
+      throw error;
+    }
+  },
+
+  async getToken(tokenId: string) {
+    if (!adminDb) throw new Error('Admin DB not initialized');
+    
+    try {
+      const tokenDoc = await adminDb.collection('tokens').doc(tokenId).get();
+      return tokenDoc.exists ? { id: tokenDoc.id, ...tokenDoc.data() } : null;
+    } catch (error) {
+      console.error('Error getting token:', error);
+      throw error;
+    }
+  },
+
+  async getTokenByContractAddress(contractAddress: string) {
+    if (!adminDb) throw new Error('Admin DB not initialized');
+    
+    try {
+      const tokensSnapshot = await adminDb.collection('tokens')
+        .where('contractAddress', '==', contractAddress.toLowerCase())
+        .limit(1)
+        .get();
+      
+      if (tokensSnapshot.empty) {
+        return null;
+      }
+      
+      const doc = tokensSnapshot.docs[0];
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error getting token by contract address:', error);
+      throw error;
+    }
+  },
+
+  async getTokenBySymbol(symbol: string) {
+    if (!adminDb) throw new Error('Admin DB not initialized');
+    
+    try {
+      const tokensSnapshot = await adminDb.collection('tokens')
+        .where('symbol', '==', symbol.toUpperCase())
+        .limit(1)
+        .get();
+      
+      if (tokensSnapshot.empty) {
+        return null;
+      }
+      
+      const doc = tokensSnapshot.docs[0];
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error getting token by symbol:', error);
+      throw error;
+    }
+  },
+
+  async getTokens(limit: number = 100, startAfter?: any) {
+    if (!adminDb) throw new Error('Admin DB not initialized');
+    
+    try {
+      let query = adminDb.collection('tokens').orderBy('createdAt', 'desc');
+      
+      if (startAfter) {
+        query = query.startAfter(startAfter);
+      }
+      
+      query = query.limit(limit);
+      
+      const snapshot = await query.get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting tokens:', error);
+      throw error;
+    }
+  },
+
+  async updateToken(tokenId: string, updates: any) {
+    if (!adminDb) throw new Error('Admin DB not initialized');
+    
+    try {
+      const tokenRef = adminDb.collection('tokens').doc(tokenId);
+      await tokenRef.update({
+        ...updates,
+        updatedAt: new Date(),
+      });
+      return tokenRef;
+    } catch (error) {
+      console.error('Error updating token:', error);
+      throw error;
+    }
+  },
+
+  // User operations
+  async createUserProfile(walletAddress: string, userData: any) {
+    if (!adminDb) throw new Error('Admin DB not initialized');
+    
+    try {
+      const userRef = adminDb.collection('users').doc(walletAddress.toLowerCase());
+      await userRef.set({
+        ...userData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      return userRef;
+    } catch (error) {
+      console.error('Error creating user profile:', error);
+      throw error;
+    }
+  },
+
+  async getUserProfile(walletAddress: string) {
+    if (!adminDb) throw new Error('Admin DB not initialized');
+    
+    try {
+      const userDoc = await adminDb.collection('users').doc(walletAddress.toLowerCase()).get();
+      return userDoc.exists ? { id: userDoc.id, ...userDoc.data() } : null;
+    } catch (error) {
+      console.error('Error getting user profile:', error);
+      throw error;
+    }
+  },
+
+  async updateUserProfile(walletAddress: string, updates: any) {
+    if (!adminDb) throw new Error('Admin DB not initialized');
+    
+    try {
+      const userRef = adminDb.collection('users').doc(walletAddress.toLowerCase());
+      await userRef.update({
+        ...updates,
+        updatedAt: new Date(),
+      });
+      return userRef;
+    } catch (error) {
+      console.error('Error updating user profile:', error);
+      throw error;
+    }
+  },
+
+  // Analytics operations
+  async getTokenAnalytics(tokenId: string, period: string = '30d') {
+    if (!adminDb) throw new Error('Admin DB not initialized');
+    
+    try {
+      const analyticsSnapshot = await adminDb.collection('analytics')
+        .where('tokenId', '==', tokenId)
+        .where('period', '==', period)
+        .orderBy('timestamp', 'desc')
+        .limit(100)
+        .get();
+      
+      return analyticsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting token analytics:', error);
+      throw error;
+    }
+  },
+
+  async saveAnalyticsData(analyticsData: any) {
+    if (!adminDb) throw new Error('Admin DB not initialized');
+    
+    try {
+      const analyticsRef = adminDb.collection('analytics').doc();
+      await analyticsRef.set({
+        ...analyticsData,
+        timestamp: new Date(),
+      });
+      return analyticsRef;
+    } catch (error) {
+      console.error('Error saving analytics data:', error);
+      throw error;
+    }
+  },
+};
