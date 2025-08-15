@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { firebaseOperations } from "@/lib/firebase"
+import { supabaseOperations } from "@/lib/supabase"
 import { insightIQ } from "@/lib/insightiq"
 import { ThirdwebSDK } from "@thirdweb-dev/sdk"
 import jwt from "jsonwebtoken"
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if symbol already exists
-    const existingToken = await firebaseOperations.getTokenBySymbol(symbol)
+    const existingToken = await supabaseOperations.getTokenBySymbol(symbol)
     if (existingToken) {
       return NextResponse.json({ 
         success: false, 
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user profile with verification data
-    const userProfile = await firebaseOperations.getUserProfile(user.walletAddress)
+    const userProfile = await supabaseOperations.getUserProfile(user.walletAddress)
     
     if (!userProfile || !userProfile.verified) {
       return NextResponse.json({ 
@@ -71,11 +71,11 @@ export async function POST(request: NextRequest) {
       const freshMetrics = await insightIQ.getUserByUsername(userProfile.username, userProfile.platform)
       if (freshMetrics) {
         // Update user profile with fresh metrics
-        await firebaseOperations.updateUserProfile(user.walletAddress, {
+        await supabaseOperations.updateUserProfile(user.walletAddress, {
           followers: freshMetrics.followers,
-          engagementRate: freshMetrics.engagementRate,
-          influenceScore: freshMetrics.influenceScore,
-          lastMetricsUpdate: new Date()
+          engagement_rate: freshMetrics.engagementRate,
+          influence_score: freshMetrics.influenceScore,
+          last_metrics_update: new Date().toISOString()
         })
         
         // Recalculate tokenomics with fresh data
@@ -203,8 +203,8 @@ export async function POST(request: NextRequest) {
       launchDate: new Date()
     }
 
-    // Save to Firebase
-    await firebaseOperations.createToken(tokenId, tokenData)
+    // Save to Supabase
+    await supabaseOperations.createToken(tokenId, tokenData)
 
     // Track token minting event with InsightIQ
     if (userProfile.insightiqId) {
@@ -223,21 +223,30 @@ export async function POST(request: NextRequest) {
 
     // Create initial analytics data point
     const initialAnalytics = {
-      tokenId,
-      contractAddress: deploymentResult.contractAddress,
+      token_id: tokenId,
       period: "1d",
-      timestamp: new Date(),
-      token_price: parseFloat(tokenomics.initialPrice),
-      holders_count: 1,
-      market_cap: parseFloat(tokenData.marketCap),
-      volume_24h: 0,
-      followers: userProfile.followers,
-      engagement_rate: userProfile.engagementRate,
-      influence_score: userProfile.influenceScore,
-      creatorId: user.walletAddress
+      metrics: {
+        token_price: parseFloat(tokenomics.initialPrice),
+        holders_count: 1,
+        market_cap: parseFloat(tokenData.marketCap),
+        volume_24h: 0,
+        followers: userProfile.followers,
+        engagement_rate: userProfile.engagement_rate,
+        influence_score: userProfile.influence_score,
+      },
+      price_data: {
+        current: parseFloat(tokenomics.initialPrice),
+        change_24h: 0
+      },
+      volume_data: {
+        volume_24h: 0
+      },
+      holder_data: {
+        total_holders: 1
+      }
     }
 
-    await firebaseOperations.saveAnalyticsData(initialAnalytics)
+    await supabaseOperations.saveAnalyticsData(initialAnalytics)
 
     return NextResponse.json({
       success: true,
@@ -371,15 +380,8 @@ function validateCustomTokenomics(customTokenomics: any) {
 
 // Update user profile helper
 async function updateUserProfile(walletAddress: string, updates: any) {
-  if (!firebaseOperations.adminDb) throw new Error('Admin DB not initialized');
-  
   try {
-    const userRef = firebaseOperations.adminDb.collection('users').doc(walletAddress.toLowerCase());
-    await userRef.update({
-      ...updates,
-      updatedAt: new Date(),
-    });
-    return userRef;
+    return await supabaseOperations.updateUserProfile(walletAddress, updates);
   } catch (error) {
     console.error('Error updating user profile:', error);
     throw error;

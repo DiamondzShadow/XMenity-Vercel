@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { firebaseOperations } from "@/lib/firebase"
+import { supabaseOperations } from "@/lib/supabase"
 import { insightIQ } from "@/lib/insightiq"
 import jwt from "jsonwebtoken"
 
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get token data using efficient query
-    const tokenData = await firebaseOperations.getTokenByContractAddress(contractAddress)
+    const tokenData = await supabaseOperations.getTokenByContractAddress(contractAddress)
     
     if (!tokenData) {
       return NextResponse.json({ success: false, error: "Token not found" }, { status: 404 })
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get token using efficient query
-    const tokenData = await firebaseOperations.getTokenByContractAddress(contractAddress)
+    const tokenData = await supabaseOperations.getTokenByContractAddress(contractAddress)
     
     if (!tokenData) {
       return NextResponse.json({ success: false, error: "Token not found" }, { status: 404 })
@@ -79,14 +79,15 @@ export async function POST(request: NextRequest) {
 
     // Save analytics data
     const analyticsData = {
-      tokenId: tokenData.id,
-      contractAddress: contractAddress.toLowerCase(),
+      token_id: tokenData.id,
       period,
       metrics,
-      creatorId: tokenData.creatorId || tokenData.creatorWallet,
+      price_data: metrics.priceData || {},
+      volume_data: metrics.volumeData || {},
+      holder_data: metrics.holderData || {},
     }
 
-    await firebaseOperations.saveAnalyticsData(analyticsData)
+    await supabaseOperations.saveAnalyticsData(analyticsData)
 
     return NextResponse.json({
       success: true,
@@ -109,7 +110,7 @@ async function generateTokenAnalytics(token: any, period: string) {
     if (historicalData.length === 0) {
       // If no historical data exists, create initial data point
       const initialData = await createInitialAnalyticsData(token)
-      await firebaseOperations.saveAnalyticsData(initialData)
+      await supabaseOperations.saveAnalyticsData(initialData)
       return {
         performance: {
           score: 0,
@@ -184,7 +185,7 @@ async function getHistoricalData(token: any, periodDays: number) {
     const cutoffDate = new Date()
     cutoffDate.setDate(cutoffDate.getDate() - periodDays)
 
-    const analytics = await firebaseOperations.getTokenAnalytics(token.id, `${periodDays}d`)
+    const analytics = await supabaseOperations.getTokenAnalytics(token.id, `${periodDays}d`)
     
     // Filter by date and sort chronologically
     return analytics
@@ -207,18 +208,27 @@ async function createInitialAnalyticsData(token: any) {
   }
 
   return {
-    tokenId: token.id,
-    contractAddress: token.contractAddress,
+    token_id: token.id,
     period: "1d",
-    timestamp: currentTime,
-    token_price: parseFloat(token.currentPrice || "0.01"),
-    holders_count: token.holdersCount || 1,
-    market_cap: parseFloat(token.marketCap || "0"),
-    volume_24h: 0,
-    followers: creatorMetrics?.followers || 1000,
-    engagement_rate: creatorMetrics?.engagementRate || 0.02,
-    influence_score: creatorMetrics?.influenceScore || 50,
-    creatorId: token.creatorId || token.creatorWallet
+    metrics: {
+      token_price: parseFloat(token.current_price || "0.01"),
+      holders_count: token.holders_count || 1,
+      market_cap: parseFloat(token.market_cap || "0"),
+      volume_24h: 0,
+      followers: creatorMetrics?.followers || 1000,
+      engagement_rate: creatorMetrics?.engagementRate || 0.02,
+      influence_score: creatorMetrics?.influenceScore || 50,
+    },
+    price_data: {
+      current: parseFloat(token.current_price || "0.01"),
+      change_24h: 0
+    },
+    volume_data: {
+      volume_24h: 0
+    },
+    holder_data: {
+      total_holders: token.holders_count || 1
+    }
   }
 }
 

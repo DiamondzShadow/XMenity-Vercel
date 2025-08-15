@@ -1,178 +1,122 @@
-# XMenity Social Token Platform
+# XMenity Tube Frontend
 
-> **Production-Ready Social Token Factory for Web3 Creators**
-
-XMenity is an enterprise-grade social token platform that enables content creators and influencers to launch their own tokens based on social media metrics and engagement. Built with Next.js, Prisma, and Web3 technologies.
+A modern Web3 social token platform built with Next.js, Supabase, and Thirdweb.
 
 ## 🚀 Features
 
-### Core Platform
-- **🔐 Wallet Authentication**: Secure SIWE (Sign-In with Ethereum) authentication
-- **🎯 Token Factory**: Deploy ERC-20 social tokens with custom parameters
-- **📊 Analytics Dashboard**: Real-time metrics and performance tracking
-- **🔗 Social Integration**: Twitter/X and InsightIQ API integration
-- **💰 Automated Minting**: Token distribution based on social metrics
-- **🏆 Milestone System**: Achievement-based token rewards
-- **📱 Mobile-First UI**: Responsive design with modern UX
+- **Social Token Creation**: Deploy milestone-based social tokens with dynamic tokenomics
+- **InsightIQ Integration**: Verify influencers and calculate tokenomics based on real social metrics
+- **Web3 Integration**: Full blockchain integration with Arbitrum
+- **Real-time Analytics**: Track token performance and social metrics
+- **Modern UI**: Built with Next.js 14, TypeScript, and Tailwind CSS
 
-### Technical Stack
+## 🛠 Tech Stack
+
 - **Frontend**: Next.js 14, TypeScript, Tailwind CSS
-- **Backend**: Express.js server with comprehensive API
-- **Database**: PostgreSQL with Prisma ORM
-- **Blockchain**: Arbitrum, Thirdweb SDK, ethers.js
-- **Authentication**: JWT + SIWE
-- **Real-time**: Firebase integration
-- **Analytics**: InsightIQ API integration
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Supabase Auth + JWT
+- **Storage**: Supabase Storage
+- **Blockchain**: Thirdweb, Arbitrum
+- **Analytics**: Custom analytics with Supabase
 
-### Security & Production Features
-- **🛡️ Security Headers**: Helmet.js, CSP, CORS configuration
-- **⚡ Rate Limiting**: Express rate limiter with Redis support
-- **🔒 Environment Validation**: Comprehensive environment configuration
-- **📦 Docker Support**: Multi-stage builds for production deployment
-- **🔄 Health Checks**: Built-in monitoring and diagnostics
-- **📈 Error Handling**: Structured logging and error tracking
+## 📦 Dependencies
 
-## 🏗️ Architecture
+### Core Dependencies
+- `@supabase/supabase-js` - Supabase client
+- `@supabase/auth-helpers-nextjs` - Supabase auth helpers
+- `@thirdweb-dev/react` & `@thirdweb-dev/sdk` - Web3 integration
+- `@prisma/client` - Database ORM
+- `next` - React framework
+- `typescript` - Type safety
 
-### Frontend Architecture
-\`\`\`
-app/
-├── api/                    # Next.js API routes
-│   ├── auth/              # Authentication endpoints
-│   ├── tokens/            # Token management
-│   ├── analytics/         # Analytics endpoints
-│   └── user/              # User management
-├── explore/               # Token discovery
-├── launch/                # Token creation
-└── components/            # Reusable UI components
-\`\`\`
+### UI Components
+- `@radix-ui/*` - Headless UI components
+- `lucide-react` - Icons
+- `tailwindcss` - Styling
+- `clsx` & `tailwind-merge` - Conditional styling
 
-### Backend Server
-\`\`\`
-server/
-└── index.js              # Express.js production server
-    ├── Authentication     # JWT + SIWE verification
-    ├── Rate Limiting      # Request throttling
-    ├── Security          # Helmet, CORS, CSP
-    └── API Routes        # RESTful endpoints
-\`\`\`
+## 🔧 Environment Variables
 
-### Database Schema
-\`\`\`
-📊 Production-Grade Prisma Schema
-├── Users              # Creator profiles & authentication
-├── Tokens             # Social token contracts
-├── TokenHoldings      # User balances
-├── Transactions       # Blockchain transactions
-├── Milestones         # Achievement tracking
-├── Rewards            # Token distributions
-├── Notifications      # Real-time alerts
-└── Analytics          # Performance metrics
-\`\`\`
+Copy `.env.example` to `.env.local` and fill in your configuration:
 
-## 🛠️ Quick Start
+```bash
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
-### Prerequisites
-- Node.js 18+ 
-- PostgreSQL database
-- Firebase project
-- Thirdweb API key
-- InsightIQ API access (optional)
+# JWT Secret
+JWT_SECRET=your_jwt_secret
 
-### Installation
+# Thirdweb
+THIRDWEB_SECRET_KEY=your_thirdweb_key
+SOCIAL_TOKEN_FACTORY_ADDRESS=your_factory_address
 
-1. **Clone & Install**
-\`\`\`bash
-git clone https://github.com/DiamondzShadow/XMenity-Vercel.git
-cd XMenity-Vercel
-npm install
-\`\`\`
+# InsightIQ
+INSIGHTIQ_API_KEY=your_insightiq_key
+```
 
-2. **Environment Setup**
-\`\`\`bash
-cp .env.example .env
-# Configure your environment variables
-\`\`\`
+## 🗄️ Database Setup
 
-3. **Database Setup**
-\`\`\`bash
-npm run db:generate
-npm run db:push
-npm run db:seed
-\`\`\`
+1. Create a new Supabase project at [supabase.com](https://supabase.com)
+2. Run the migration file to set up your database schema:
+   ```sql
+   -- Run the contents of supabase/migrations/001_initial_schema.sql
+   ```
+3. Configure your environment variables with your Supabase credentials
 
-4. **Development**
-\`\`\`bash
-# Start frontend
-npm run dev
+## 🚀 Getting Started
 
-# Start backend server (separate terminal)
-npm run server:dev
-\`\`\`
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd xmenity-tube-frontend
+   ```
 
-5. **Production Build**
-\`\`\`bash
-npm run build
-npm start
-\`\`\`
+2. **Install dependencies**
+   ```bash
+   pnpm install
+   ```
 
-## 🔧 Configuration
+3. **Set up environment variables**
+   ```bash
+   cp .env.example .env.local
+   # Fill in your environment variables
+   ```
 
-### Required Environment Variables
+4. **Set up the database**
+   - Create a Supabase project
+   - Run the migration SQL in your Supabase SQL editor
+   - Update your DATABASE_URL in .env.local
 
-**Database & Authentication**
-\`\`\`env
-DATABASE_URL="postgresql://user:pass@localhost:5432/xmenity"
-JWT_SECRET="your-secure-jwt-secret"
-NEXTAUTH_SECRET="your-nextauth-secret"
-\`\`\`
+5. **Generate Prisma client**
+   ```bash
+   pnpm db:generate
+   ```
 
-**Blockchain & Web3**
-\`\`\`env
-THIRDWEB_CLIENT_ID="your-thirdweb-client-id"
-FACTORY_CONTRACT_ADDRESS="0x..."
-ARBITRUM_RPC_URL="https://arb1.arbitrum.io/rpc"
-PRIVATE_KEY="your-deployment-private-key"
-\`\`\`
+6. **Run the development server**
+   ```bash
+   pnpm dev
+   ```
 
-**Firebase Integration**
-\`\`\`env
-FIREBASE_PROJECT_ID="your-firebase-project"
-FIREBASE_CLIENT_EMAIL="service-account@project.iam.gserviceaccount.com"
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
-\`\`\`
+7. **Open your browser**
+   Navigate to [http://localhost:3000](http://localhost:3000)
 
-**Social Media APIs**
-\`\`\`env
-TWITTER_BEARER_TOKEN="your-twitter-v2-bearer-token"
-INSIGHTIQ_API_KEY="your-insightiq-api-key"
-\`\`\`
+## 📂 Project Structure
 
-## 🚀 Deployment
-
-### Vercel Deployment
-\`\`\`bash
-# Deploy to Vercel
-vercel --prod
-
-# Configure environment variables in Vercel dashboard
-\`\`\`
-
-### Docker Deployment
-\`\`\`bash
-# Build production image
-docker build -t xmenity-app .
-
-# Run with docker-compose
-docker-compose up -d
-\`\`\`
-
-### VM Deployment
-\`\`\`bash
-# Use the automated deployment script
-chmod +x scripts/deploy.sh
-./scripts/deploy.sh
-\`\`\`
+```
+├── app/                 # Next.js 14 app directory
+│   ├── api/            # API routes
+│   ├── components/     # Page components
+│   └── globals.css     # Global styles
+├── components/         # Reusable UI components
+├── lib/               # Utility functions and configurations
+│   ├── supabase.ts    # Supabase client and operations
+│   └── utils.ts       # Helper utilities
+├── supabase/          # Database migrations and config
+├── types/            # TypeScript type definitions
+└── prisma/           # Database schema and migrations
+```
 
 ## 📊 Token Economics
 

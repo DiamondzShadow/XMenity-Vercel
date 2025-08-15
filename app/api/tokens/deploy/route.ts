@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { firebaseOperations } from "@/lib/firebase"
+import { supabaseOperations } from "@/lib/supabase"
 import { insightIQ } from "@/lib/insightiq"
 import { ThirdwebSDK } from "@thirdweb-dev/sdk"
 
@@ -61,8 +61,8 @@ export async function POST(request: NextRequest) {
         holdersCount: 1,
       }
 
-      // Save to Firebase
-      await firebaseOperations.createToken(tokenId, tokenData)
+      // Save to Supabase
+      await supabaseOperations.createToken(tokenId, tokenData)
 
       return NextResponse.json({
         success: true,
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
         testMode: true,
       }
 
-      await firebaseOperations.createToken(tokenId, tokenData)
+      await supabaseOperations.createToken(tokenId, tokenData)
 
       return NextResponse.json({
         success: true,

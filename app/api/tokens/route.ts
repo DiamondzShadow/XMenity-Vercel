@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { PrismaClient } from "@prisma/client"
-import { firebaseOperations } from "@/lib/firebase"
+import { supabaseOperations } from "@/lib/supabase"
 import jwt from "jsonwebtoken"
 
 const prisma = new PrismaClient()
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check symbol uniqueness using efficient query
-    const existingSymbolToken = await firebaseOperations.getTokenBySymbol(symbol)
+    const existingSymbolToken = await supabaseOperations.getTokenBySymbol(symbol)
     if (existingSymbolToken) {
       throw new ValidationError("Token symbol already exists")
     }
