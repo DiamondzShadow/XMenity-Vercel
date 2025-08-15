@@ -186,8 +186,8 @@ function prepareTokenDeployment(tokenData: any, user: any, tokenomics: any) {
       influenceScore: user.influenceScore,
       tier: tokenomics.tier
     },
-    thresholds: tokenomics.milestones.map(m => m.holders),
-    weights: tokenomics.milestones.map(m => m.reward),
+    thresholds: tokenomics.milestones.map((m: any) => m.holders),
+    weights: tokenomics.milestones.map((m: any) => m.reward),
     logoUrl: tokenData.logoUrl || user.profileImage,
     verified: true,
     insightiqVerified: true

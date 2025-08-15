@@ -1,8 +1,8 @@
 // Example: Next.js API Route Integration with InsightIQ AI
 // File: app/api/insights/comments/route.ts
-
+/*
 import { NextRequest, NextResponse } from 'next/server';
-import { InsightIQClient } from '../../lib/insightiq';
+import { InsightIQClient } from '../client';
 
 // Initialize InsightIQ client
 const insightiq = new InsightIQClient({
