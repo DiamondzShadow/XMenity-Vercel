@@ -1,58 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { PrismaClient } from "@prisma/client"
-import { supabaseOperations } from "@/lib/supabase"
-import jwt from "jsonwebtoken"
+import { requireAuth } from "@/lib/auth"
 
 const prisma = new PrismaClient()
-
-// Custom error classes
-class AuthenticationError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'AuthenticationError'
-  }
-}
-
-class ValidationError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'ValidationError'
-  }
-}
-
-// Helper function to verify JWT token
-async function verifyToken(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  const token = authHeader?.split(' ')[1]
-
-  if (!token) {
-    throw new AuthenticationError('Access token required')
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      select: {
-        id: true,
-        walletAddress: true,
-        isActive: true,
-        isVerified: true,
-      }
-    })
-
-    if (!user || !user.isActive) {
-      throw new AuthenticationError('User not found or inactive')
-    }
-
-    return user
-  } catch (error) {
-    if (error instanceof AuthenticationError) {
-      throw error
-    }
-    throw new AuthenticationError('Invalid token')
-  }
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -113,7 +63,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Verify authentication
-    const user = await verifyToken(request)
+    const user = await requireAuth(request)
 
     const body = await request.json()
     const {
@@ -128,13 +78,15 @@ export async function POST(request: NextRequest) {
     } = body
 
     if (!name || !symbol || !contractAddress) {
-      throw new ValidationError("Missing required fields: name, symbol, or contractAddress")
+      return NextResponse.json({ error: "Missing required fields: name, symbol, or contractAddress" }, { status: 400 })
     }
 
-    // Check symbol uniqueness using efficient query
-    const existingSymbolToken = await supabaseOperations.getTokenBySymbol(symbol)
+    // Check symbol uniqueness
+    const existingSymbolToken = await prisma.token.findFirst({
+      where: { symbol: symbol.toUpperCase() }
+    })
     if (existingSymbolToken) {
-      throw new ValidationError("Token symbol already exists")
+      return NextResponse.json({ error: "Token symbol already exists" }, { status: 400 })
     }
 
     const token = await prisma.token.create({
@@ -161,22 +113,15 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    return NextResponse.json({
-      success: true,
-      token,
-    })
+    return NextResponse.json(token, { status: 201 })
   } catch (error) {
     console.error("Failed to create token:", error)
     
-    if (error instanceof AuthenticationError) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 401 })
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
     
-    if (error instanceof ValidationError) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 400 })
-    }
-    
-    return NextResponse.json({ success: false, error: "Failed to create token" }, { status: 500 })
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   } finally {
     await prisma.$disconnect()
   }

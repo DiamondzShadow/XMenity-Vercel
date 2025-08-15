@@ -13,8 +13,6 @@
     "dev": "next dev",
     "postinstall": "prisma generate",
     "lint": "next lint",
-    "server": "node server/index.js",
-    "server:dev": "nodemon server/index.js",
     "start": "next start",
     "test": "jest",
     "test:coverage": "jest --coverage",
@@ -68,8 +66,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "latest",
-    "compression": "latest",
-    "cors": "latest",
+
     "crypto": "latest",
     "date-fns": "^3.3.1",
     "dotenv": "latest",
@@ -78,14 +75,12 @@
     "ethers-aws-kms-signer": "latest",
     "expo-linking": "latest",
     "expo-web-browser": "latest",
-    "express": "latest",
-    "express-rate-limit": "latest",
-    "helmet": "latest",
+
     "http": "latest",
     "input-otp": "latest",
     "jsonwebtoken": "latest",
     "lucide-react": "^0.454.0",
-    "morgan": "latest",
+
     "next": "14.2.16",
     "next-themes": "latest",
     "react": "^18",
@@ -111,18 +106,17 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
-    "@types/compression": "^1.7.5",
-    "@types/cors": "^2.8.17",
-    "@types/express": "^4.17.21",
+
+
     "@types/jsonwebtoken": "^9.0.6",
-    "@types/morgan": "^1.9.9",
+
     "@types/node": "^22",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",
     "eslint": "^8",
     "eslint-config-next": "14.1.0",
-    "nodemon": "^3.0.2",
+
     "postcss": "^8.5",
     "prisma": "^5.7.1",
     "tailwindcss": "^3.4.17",
