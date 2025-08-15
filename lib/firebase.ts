@@ -1,156 +1,281 @@
-import { initializeApp, getApps } from "firebase/app"
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage"
-import {
-  getFirestore,
-  collection,
-  doc,
-  setDoc,
-  getDoc,
-  getDocs,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
-  limit,
-} from "firebase/firestore"
+import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
+import { getDatabase, Database } from 'firebase/database';
 
+// Firebase configuration for diamond-zminter project
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-}
+  projectId: process.env.FIREBASE_PROJECT_ID || 'diamond-zminter',
+  databaseURL: process.env.FIREBASE_DATABASE_URL || 'https://diamond-zminter-default-rtdb.firebaseio.com',
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET || 'diamond-zminter.firebasestorage.app',
+  // Add other config values as needed
+  apiKey: process.env.FIREBASE_API_KEY,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.FIREBASE_APP_ID,
+};
 
 // Initialize Firebase
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
-export const storage = getStorage(app)
-export const db = getFirestore(app)
-
-// Storage functions
-export async function uploadFile(file: File, path: string): Promise<string> {
-  try {
-    const storageRef = ref(storage, path)
-    const snapshot = await uploadBytes(storageRef, file)
-    const downloadURL = await getDownloadURL(snapshot.ref)
-    return downloadURL
-  } catch (error) {
-    console.error("Error uploading file:", error)
-    throw new Error("Failed to upload file")
-  }
+let app: FirebaseApp;
+if (getApps().length === 0) {
+  app = initializeApp(firebaseConfig);
+} else {
+  app = getApps()[0];
 }
 
-export async function deleteFile(path: string): Promise<void> {
-  try {
-    const storageRef = ref(storage, path)
-    await deleteObject(storageRef)
-  } catch (error) {
-    console.error("Error deleting file:", error)
-    throw new Error("Failed to delete file")
-  }
-}
+// Initialize Firebase services
+export const auth: Auth = getAuth(app);
+export const db: Firestore = getFirestore(app);
+export const storage: FirebaseStorage = getStorage(app);
+export const rtdb: Database = getDatabase(app);
 
-// Firestore functions
-export async function createDocument(collectionName: string, docId: string, data: any): Promise<void> {
-  try {
-    await setDoc(doc(db, collectionName, docId), {
-      ...data,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    })
-  } catch (error) {
-    console.error("Error creating document:", error)
-    throw new Error("Failed to create document")
-  }
-}
+// Firebase Admin SDK for server-side operations
+import { initializeApp as initializeAdminApp, getApps as getAdminApps, cert } from 'firebase-admin/app';
+import { getAuth as getAdminAuth } from 'firebase-admin/auth';
+import { getFirestore as getAdminFirestore } from 'firebase-admin/firestore';
+import { getStorage as getAdminStorage } from 'firebase-admin/storage';
+import { getDatabase as getAdminDatabase } from 'firebase-admin/database';
 
-export async function getDocument(collectionName: string, docId: string): Promise<any> {
+// Server-side Firebase Admin configuration
+let adminApp: any;
+if (typeof window === 'undefined') {
   try {
-    const docRef = doc(db, collectionName, docId)
-    const docSnap = await getDoc(docRef)
-
-    if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() }
+    if (getAdminApps().length === 0) {
+      adminApp = initializeAdminApp({
+        credential: cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        }),
+        databaseURL: process.env.FIREBASE_DATABASE_URL,
+        storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+      });
     } else {
-      return null
+      adminApp = getAdminApps()[0];
     }
   } catch (error) {
-    console.error("Error getting document:", error)
-    throw new Error("Failed to get document")
+    console.error('Firebase Admin initialization error:', error);
   }
 }
 
-export async function updateDocument(collectionName: string, docId: string, data: any): Promise<void> {
-  try {
-    await updateDoc(doc(db, collectionName, docId), {
-      ...data,
-      updatedAt: new Date(),
-    })
-  } catch (error) {
-    console.error("Error updating document:", error)
-    throw new Error("Failed to update document")
-  }
-}
+// Export admin services
+export const adminAuth = typeof window === 'undefined' && adminApp ? getAdminAuth(adminApp) : null;
+export const adminDb = typeof window === 'undefined' && adminApp ? getAdminFirestore(adminApp) : null;
+export const adminStorage = typeof window === 'undefined' && adminApp ? getAdminStorage(adminApp) : null;
+export const adminRtdb = typeof window === 'undefined' && adminApp ? getAdminDatabase(adminApp) : null;
 
-export async function deleteDocument(collectionName: string, docId: string): Promise<void> {
-  try {
-    await deleteDoc(doc(db, collectionName, docId))
-  } catch (error) {
-    console.error("Error deleting document:", error)
-    throw new Error("Failed to delete document")
-  }
-}
-
-export async function getDocuments(collectionName: string, conditions?: any[]): Promise<any[]> {
-  try {
-    let q = collection(db, collectionName)
-
-    if (conditions && conditions.length > 0) {
-      q = query(q, ...conditions)
+// Firebase utility functions
+export const FirebaseUtils = {
+  // User management utilities
+  async createUserProfile(userId: string, userData: any) {
+    if (!adminDb) throw new Error('Admin DB not initialized');
+    
+    try {
+      const userRef = adminDb.collection('users').doc(userId);
+      await userRef.set({
+        ...userData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      return userRef;
+    } catch (error) {
+      console.error('Error creating user profile:', error);
+      throw error;
     }
+  },
 
-    const querySnapshot = await getDocs(q)
-    return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-  } catch (error) {
-    console.error("Error getting documents:", error)
-    throw new Error("Failed to get documents")
-  }
-}
+  async getUserProfile(userId: string) {
+    if (!adminDb) throw new Error('Admin DB not initialized');
+    
+    try {
+      const userDoc = await adminDb.collection('users').doc(userId).get();
+      return userDoc.exists ? userDoc.data() : null;
+    } catch (error) {
+      console.error('Error getting user profile:', error);
+      throw error;
+    }
+  },
 
-// Token-specific functions
-export async function saveToken(tokenData: any): Promise<void> {
-  const tokenId = `${tokenData.contractAddress}_${tokenData.chainId}`
-  await createDocument("tokens", tokenId, tokenData)
-}
+  async updateUserProfile(userId: string, updates: any) {
+    if (!adminDb) throw new Error('Admin DB not initialized');
+    
+    try {
+      const userRef = adminDb.collection('users').doc(userId);
+      await userRef.update({
+        ...updates,
+        updatedAt: new Date(),
+      });
+      return userRef;
+    } catch (error) {
+      console.error('Error updating user profile:', error);
+      throw error;
+    }
+  },
 
-export async function getToken(contractAddress: string, chainId: number): Promise<any> {
-  const tokenId = `${contractAddress}_${chainId}`
-  return await getDocument("tokens", tokenId)
-}
+  // Token tracking utilities
+  async trackTokenCreation(tokenData: any) {
+    if (!adminDb) throw new Error('Admin DB not initialized');
+    
+    try {
+      const tokenRef = adminDb.collection('tokens').doc(tokenData.contractAddress);
+      await tokenRef.set({
+        ...tokenData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      return tokenRef;
+    } catch (error) {
+      console.error('Error tracking token creation:', error);
+      throw error;
+    }
+  },
 
-export async function getTokens(filters?: any): Promise<any[]> {
-  const conditions = []
+  async getTokenInfo(contractAddress: string) {
+    if (!adminDb) throw new Error('Admin DB not initialized');
+    
+    try {
+      const tokenDoc = await adminDb.collection('tokens').doc(contractAddress).get();
+      return tokenDoc.exists ? tokenDoc.data() : null;
+    } catch (error) {
+      console.error('Error getting token info:', error);
+      throw error;
+    }
+  },
 
-  if (filters?.creator) {
-    conditions.push(where("creator", "==", filters.creator))
-  }
+  // Transaction logging
+  async logTransaction(transactionData: any) {
+    if (!adminDb) throw new Error('Admin DB not initialized');
+    
+    try {
+      const transactionRef = adminDb.collection('transactions').doc(transactionData.txHash);
+      await transactionRef.set({
+        ...transactionData,
+        timestamp: new Date(),
+      });
+      return transactionRef;
+    } catch (error) {
+      console.error('Error logging transaction:', error);
+      throw error;
+    }
+  },
 
-  if (filters?.verified !== undefined) {
-    conditions.push(where("verified", "==", filters.verified))
-  }
+  // Real-time updates using Realtime Database
+  async sendRealtimeUpdate(path: string, data: any) {
+    if (!adminRtdb) throw new Error('Admin RTDB not initialized');
+    
+    try {
+      const ref = adminRtdb.ref(path);
+      await ref.set({
+        ...data,
+        timestamp: Date.now(),
+      });
+      return ref;
+    } catch (error) {
+      console.error('Error sending realtime update:', error);
+      throw error;
+    }
+  },
 
-  conditions.push(orderBy("createdAt", "desc"))
+  // Analytics tracking
+  async trackEvent(eventType: string, eventData: any) {
+    if (!adminDb) throw new Error('Admin DB not initialized');
+    
+    try {
+      const eventRef = adminDb.collection('analytics').doc();
+      await eventRef.set({
+        eventType,
+        eventData,
+        timestamp: new Date(),
+      });
+      return eventRef;
+    } catch (error) {
+      console.error('Error tracking event:', error);
+      throw error;
+    }
+  },
 
-  if (filters?.limit) {
-    conditions.push(limit(filters.limit))
-  }
+  // File upload utilities
+  async uploadFile(file: File, path: string): Promise<string> {
+    if (!adminStorage) throw new Error('Admin Storage not initialized');
+    
+    try {
+      const bucket = adminStorage.bucket();
+      const fileRef = bucket.file(path);
+      
+      const stream = fileRef.createWriteStream({
+        metadata: {
+          contentType: file.type,
+        },
+      });
 
-  return await getDocuments("tokens", conditions)
-}
+      return new Promise((resolve, reject) => {
+        stream.on('error', reject);
+        stream.on('finish', async () => {
+          try {
+            await fileRef.makePublic();
+            const publicUrl = `https://storage.googleapis.com/${bucket.name}/${path}`;
+            resolve(publicUrl);
+          } catch (error) {
+            reject(error);
+          }
+        });
+        
+        const reader = file.stream().getReader();
+        const pump = async () => {
+          const { done, value } = await reader.read();
+          if (done) {
+            stream.end();
+          } else {
+            stream.write(value);
+            pump();
+          }
+        };
+        pump();
+      });
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      throw error;
+    }
+  },
 
-export async function updateTokenMetrics(contractAddress: string, chainId: number, metrics: any): Promise<void> {
-  const tokenId = `${contractAddress}_${chainId}`
-  await updateDocument("tokens", tokenId, { metrics })
-}
+  // Backup utilities
+  async backupUserData(userId: string) {
+    if (!adminDb) throw new Error('Admin DB not initialized');
+    
+    try {
+      const userProfile = await this.getUserProfile(userId);
+      const backupRef = adminDb.collection('backups').doc(`${userId}_${Date.now()}`);
+      await backupRef.set({
+        userId,
+        userProfile,
+        timestamp: new Date(),
+      });
+      return backupRef;
+    } catch (error) {
+      console.error('Error backing up user data:', error);
+      throw error;
+    }
+  },
+};
+
+// Firebase hooks for React components
+export const useFirebaseAuth = () => {
+  if (typeof window === 'undefined') return null;
+  return auth;
+};
+
+export const useFirebaseDb = () => {
+  if (typeof window === 'undefined') return null;
+  return db;
+};
+
+export const useFirebaseStorage = () => {
+  if (typeof window === 'undefined') return null;
+  return storage;
+};
+
+export const useFirebaseRtdb = () => {
+  if (typeof window === 'undefined') return null;
+  return rtdb;
+};
