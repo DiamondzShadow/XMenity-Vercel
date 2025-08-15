@@ -123,7 +123,7 @@ pnpm db:push
 
 # Start with PM2 (production)
 npm install -g pm2
-pm2 start server/index.js --name "xmenity-backend"
+pm2 start "pnpm start" --name "xmenity-app"
 pm2 startup
 pm2 save
 \`\`\`
@@ -241,9 +241,9 @@ sudo tail -f /var/log/nginx/error.log
 
 3. **PM2 Process Issues**
    \`\`\`bash
-   pm2 restart xmenity-backend
-   pm2 delete xmenity-backend
-   pm2 start server/index.js --name "xmenity-backend"
+   pm2 restart xmenity-app
+   pm2 delete xmenity-app
+   pm2 start "pnpm start" --name "xmenity-app"
    \`\`\`
 
 4. **Nginx Configuration Issues**

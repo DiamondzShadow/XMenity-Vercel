@@ -142,12 +142,15 @@ pnpm db:push
 # Build the application
 pnpm build
 
-# Start the backend server
-pnpm server
+# Start the Next.js application (includes both frontend and API routes)
+pnpm start
+
+# For development
+pnpm dev
 
 # Or use PM2 for production (recommended)
 npm install -g pm2
-pm2 start server/index.js --name "xmenity-backend"
+pm2 start "pnpm start" --name "xmenity-app"
 pm2 startup
 pm2 save
 \`\`\`
