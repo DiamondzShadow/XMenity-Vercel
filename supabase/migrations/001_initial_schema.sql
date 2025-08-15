@@ -1,138 +1,156 @@
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- Enable necessary extensions
+create extension if not exists "uuid-ossp";
 
 -- Create users table
-CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    wallet_address TEXT UNIQUE NOT NULL,
-    display_name TEXT,
-    twitter_username TEXT UNIQUE,
-    twitter_id TEXT UNIQUE,
-    profile_image TEXT,
-    follower_count INTEGER DEFAULT 0,
-    following_count INTEGER DEFAULT 0,
-    tweet_count INTEGER DEFAULT 0,
-    is_verified BOOLEAN DEFAULT FALSE,
-    verification_status TEXT DEFAULT 'pending',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+create table public.users (
+  id uuid default uuid_generate_v4() primary key,
+  wallet_address text unique not null,
+  display_name text,
+  twitter_username text,
+  profile_image text,
+  bio text,
+  verified boolean default false,
+  tier text check (tier in ('nano', 'micro', 'macro', 'mega')),
+  followers integer default 0,
+  engagement_rate decimal default 0,
+  influence_score integer default 0,
+  insightiq_id text,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
 -- Create tokens table
-CREATE TABLE tokens (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    contract_address TEXT UNIQUE NOT NULL,
-    name TEXT NOT NULL,
-    symbol TEXT UNIQUE NOT NULL,
-    description TEXT,
-    logo_url TEXT,
-    total_supply TEXT NOT NULL,
-    initial_supply TEXT NOT NULL,
-    creator_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    current_price TEXT DEFAULT '0',
-    market_cap TEXT DEFAULT '0',
-    holders_count INTEGER DEFAULT 0,
-    transactions_count INTEGER DEFAULT 0,
-    milestone_config JSONB,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Create transactions table
-CREATE TABLE transactions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    tx_hash TEXT UNIQUE NOT NULL,
-    from_address TEXT NOT NULL,
-    to_address TEXT NOT NULL,
-    token_address TEXT,
-    amount TEXT NOT NULL,
-    transaction_type TEXT NOT NULL,
-    gas_used TEXT,
-    gas_price TEXT,
-    block_number INTEGER,
-    timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Create milestones table
-CREATE TABLE milestones (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    token_id UUID REFERENCES tokens(id) ON DELETE CASCADE,
-    milestone_type TEXT NOT NULL,
-    target_value INTEGER NOT NULL,
-    current_value INTEGER DEFAULT 0,
-    reward_amount TEXT NOT NULL,
-    is_completed BOOLEAN DEFAULT FALSE,
-    completed_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+create table public.tokens (
+  id uuid default uuid_generate_v4() primary key,
+  name text not null,
+  symbol text unique not null,
+  description text,
+  logo_url text,
+  contract_address text unique not null,
+  total_supply text not null,
+  current_price text default '0.01',
+  creator_id uuid references public.users(id),
+  creator_wallet text not null,
+  verified boolean default false,
+  is_public boolean default true,
+  is_active boolean default true,
+  metrics jsonb default '{}',
+  milestones jsonb default '[]',
+  tokenomics jsonb default '{}',
+  holders_count integer default 1,
+  market_cap text default '0',
+  volume_24h text default '0',
+  current_milestone integer default 0,
+  milestones_achieved integer[] default '{}',
+  next_milestone_target integer default 100,
+  test_mode boolean default false,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
 -- Create analytics table
-CREATE TABLE analytics (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    event_type TEXT NOT NULL,
-    event_data JSONB NOT NULL,
-    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-    timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+create table public.analytics (
+  id uuid default uuid_generate_v4() primary key,
+  token_id uuid references public.tokens(id),
+  contract_address text not null,
+  period text not null,
+  timestamp timestamp with time zone default timezone('utc'::text, now()) not null,
+  token_price decimal default 0,
+  holders_count integer default 0,
+  market_cap decimal default 0,
+  volume_24h decimal default 0,
+  followers integer default 0,
+  engagement_rate decimal default 0,
+  influence_score integer default 0,
+  creator_id uuid references public.users(id)
+);
+
+-- Create events table for tracking
+create table public.events (
+  id uuid default uuid_generate_v4() primary key,
+  event_type text not null,
+  event_data jsonb default '{}',
+  user_id uuid references public.users(id),
+  token_id uuid references public.tokens(id),
+  timestamp timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Create token_holdings table
+create table public.token_holdings (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references public.users(id),
+  token_id uuid references public.tokens(id),
+  balance text not null default '0',
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  unique(user_id, token_id)
 );
 
 -- Create indexes for better performance
-CREATE INDEX idx_users_wallet_address ON users(wallet_address);
-CREATE INDEX idx_users_twitter_username ON users(twitter_username);
-CREATE INDEX idx_tokens_contract_address ON tokens(contract_address);
-CREATE INDEX idx_tokens_creator_id ON tokens(creator_id);
-CREATE INDEX idx_tokens_symbol ON tokens(symbol);
-CREATE INDEX idx_transactions_tx_hash ON transactions(tx_hash);
-CREATE INDEX idx_transactions_token_address ON transactions(token_address);
-CREATE INDEX idx_milestones_user_id ON milestones(user_id);
-CREATE INDEX idx_milestones_token_id ON milestones(token_id);
-CREATE INDEX idx_analytics_event_type ON analytics(event_type);
-CREATE INDEX idx_analytics_user_id ON analytics(user_id);
+create index idx_users_wallet_address on public.users(wallet_address);
+create index idx_tokens_contract_address on public.tokens(contract_address);
+create index idx_tokens_symbol on public.tokens(symbol);
+create index idx_tokens_creator_id on public.tokens(creator_id);
+create index idx_analytics_token_id on public.analytics(token_id);
+create index idx_analytics_timestamp on public.analytics(timestamp);
+create index idx_events_timestamp on public.events(timestamp);
+create index idx_token_holdings_user_id on public.token_holdings(user_id);
+create index idx_token_holdings_token_id on public.token_holdings(token_id);
 
--- Enable Row Level Security
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE tokens ENABLE ROW LEVEL SECURITY;
-ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE milestones ENABLE ROW LEVEL SECURITY;
-ALTER TABLE analytics ENABLE ROW LEVEL SECURITY;
+-- Enable Row Level Security (RLS)
+alter table public.users enable row level security;
+alter table public.tokens enable row level security;
+alter table public.analytics enable row level security;
+alter table public.events enable row level security;
+alter table public.token_holdings enable row level security;
 
--- Create RLS policies
--- Users can read all profiles but only update their own
-CREATE POLICY "Users can view all profiles" ON users FOR SELECT USING (true);
-CREATE POLICY "Users can update own profile" ON users FOR UPDATE USING (wallet_address = current_setting('request.jwt.claims', true)::json->>'wallet_address');
-CREATE POLICY "Users can insert own profile" ON users FOR INSERT WITH CHECK (wallet_address = current_setting('request.jwt.claims', true)::json->>'wallet_address');
+-- Create policies for public read access
+create policy "Public tokens are viewable by everyone" on public.tokens
+  for select using (is_public = true);
 
--- Tokens are publicly readable, creators can manage their own
-CREATE POLICY "Tokens are publicly readable" ON tokens FOR SELECT USING (true);
-CREATE POLICY "Creators can manage their tokens" ON tokens FOR ALL USING (creator_id IN (SELECT id FROM users WHERE wallet_address = current_setting('request.jwt.claims', true)::json->>'wallet_address'));
+create policy "Public user profiles are viewable by everyone" on public.users
+  for select using (true);
 
--- Transactions are publicly readable
-CREATE POLICY "Transactions are publicly readable" ON transactions FOR SELECT USING (true);
-CREATE POLICY "System can insert transactions" ON transactions FOR INSERT WITH CHECK (true);
+create policy "Analytics are viewable by everyone" on public.analytics
+  for select using (true);
 
--- Milestones are readable by all, manageable by token creators
-CREATE POLICY "Milestones are publicly readable" ON milestones FOR SELECT USING (true);
-CREATE POLICY "Token creators can manage milestones" ON milestones FOR ALL USING (
-    token_id IN (
-        SELECT id FROM tokens WHERE creator_id IN (
-            SELECT id FROM users WHERE wallet_address = current_setting('request.jwt.claims', true)::json->>'wallet_address'
-        )
-    )
-);
+-- Create policies for authenticated users
+create policy "Users can insert their own profile" on public.users
+  for insert with check (true);
 
--- Analytics are system-managed
-CREATE POLICY "Analytics are readable by system" ON analytics FOR SELECT USING (true);
-CREATE POLICY "System can insert analytics" ON analytics FOR INSERT WITH CHECK (true);
+create policy "Users can update their own profile" on public.users
+  for update using (true);
 
--- Create functions for updating timestamps
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
+create policy "Users can create tokens" on public.tokens
+  for insert with check (true);
 
--- Create triggers for updating timestamps
-CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_tokens_updated_at BEFORE UPDATE ON tokens FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+create policy "Token creators can update their tokens" on public.tokens
+  for update using (true);
+
+create policy "Users can insert analytics" on public.analytics
+  for insert with check (true);
+
+create policy "Users can insert events" on public.events
+  for insert with check (true);
+
+create policy "Users can manage their token holdings" on public.token_holdings
+  for all using (true);
+
+-- Create updated_at trigger function
+create or replace function public.handle_updated_at()
+returns trigger as $$
+begin
+  new.updated_at = timezone('utc'::text, now());
+  return new;
+end;
+$$ language plpgsql;
+
+-- Create triggers for updated_at
+create trigger handle_updated_at before update on public.users
+  for each row execute procedure public.handle_updated_at();
+
+create trigger handle_updated_at before update on public.tokens
+  for each row execute procedure public.handle_updated_at();
+
+create trigger handle_updated_at before update on public.token_holdings
+  for each row execute procedure public.handle_updated_at();

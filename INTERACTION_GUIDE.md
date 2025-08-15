@@ -6,32 +6,32 @@
 - **Chain ID**: 150179125 (Custom Arbitrum)
 
 ## Quick Setup
-```bash
+\`\`\`bash
 export PRIVATE_KEY="your_private_key"
 export RPC_URL="custom_arb"
 export TOKEN_ADDRESS="0x7f2BFF3ecF09B430f01271A892b1dB4C533F568E"
 export FACTORY_ADDRESS="0x477B1D346a477FD3190da45c29F226f33D09Dc93"
 export CREATOR_ADDRESS="0x1FEF4cd069E711cFeC93247671Ad41a17D97eDF4"
-```
+\`\`\`
 
 ## 🔍 Reading Contract State
 
 ### 1. Get All Metrics Information
-```bash
+\`\`\`bash
 # Get complete metrics configuration
 cast call $TOKEN_ADDRESS "getMetrics()" --rpc-url $RPC_URL
-```
+\`\`\`
 
 ### 2. Get Individual Metric Names
-```bash
+\`\`\`bash
 # Get metric by index (0-5)
 cast call $TOKEN_ADDRESS "metricNames(uint256)" 0 --rpc-url $RPC_URL
 cast call $TOKEN_ADDRESS "metricNames(uint256)" 1 --rpc-url $RPC_URL
 # ... etc for indices 2-5
-```
+\`\`\`
 
 ### 3. Get Metric Values and Configuration
-```bash
+\`\`\`bash
 # Get specific metric data (returns name and current value)
 cast call $TOKEN_ADDRESS "metrics(string)" "followers" --rpc-url $RPC_URL
 cast call $TOKEN_ADDRESS "metrics(string)" "engagement_rate" --rpc-url $RPC_URL
@@ -39,19 +39,19 @@ cast call $TOKEN_ADDRESS "metrics(string)" "reach" --rpc-url $RPC_URL
 cast call $TOKEN_ADDRESS "metrics(string)" "influence_score" --rpc-url $RPC_URL
 cast call $TOKEN_ADDRESS "metrics(string)" "authenticity_score" --rpc-url $RPC_URL
 cast call $TOKEN_ADDRESS "metrics(string)" "growth_rate" --rpc-url $RPC_URL
-```
+\`\`\`
 
 ### 4. Check Creator Information
-```bash
+\`\`\`bash
 # Get creator data
 cast call $TOKEN_ADDRESS "creatorData()" --rpc-url $RPC_URL
 
 # Check last claimed threshold for specific metric
 cast call $TOKEN_ADDRESS "lastClaimedThreshold(address,string)" $CREATOR_ADDRESS "followers" --rpc-url $RPC_URL
-```
+\`\`\`
 
 ### 5. Check Token Information
-```bash
+\`\`\`bash
 # Get token balance
 cast call $TOKEN_ADDRESS "balanceOf(address)" $CREATOR_ADDRESS --rpc-url $RPC_URL
 
@@ -61,12 +61,12 @@ cast call $TOKEN_ADDRESS "totalSupply()" --rpc-url $RPC_URL
 # Get token name and symbol
 cast call $TOKEN_ADDRESS "name()" --rpc-url $RPC_URL
 cast call $TOKEN_ADDRESS "symbol()" --rpc-url $RPC_URL
-```
+\`\`\`
 
 ## ✏️ Updating Contract State (Creator Only)
 
 ### 1. Update Metric Values
-```bash
+\`\`\`bash
 # Update followers count
 cast send $TOKEN_ADDRESS \
     "updateMetricValue(string,uint256)" \
@@ -87,10 +87,10 @@ cast send $TOKEN_ADDRESS \
     "reach" 150000 \
     --rpc-url $RPC_URL \
     --private-key $PRIVATE_KEY
-```
+\`\`\`
 
 ### 2. Claim Rewards
-```bash
+\`\`\`bash
 # Claim rewards for followers milestone
 cast send $TOKEN_ADDRESS \
     "claimReward(string)" \
@@ -104,22 +104,22 @@ cast send $TOKEN_ADDRESS \
     "engagement_rate" \
     --rpc-url $RPC_URL \
     --private-key $PRIVATE_KEY
-```
+\`\`\`
 
 ### 3. Update Creator Metadata
-```bash
+\`\`\`bash
 # Update creator data (hex-encoded string)
 cast send $TOKEN_ADDRESS \
     "updateCreatorData(bytes)" \
     0x557064617465642063726561746f722064617461 \
     --rpc-url $RPC_URL \
     --private-key $PRIVATE_KEY
-```
+\`\`\`
 
 ## 🏭 TokenFactory Operations
 
 ### 1. Deploy New ModularToken
-```bash
+\`\`\`bash
 # Deploy a new token through the factory
 # Note: thresholds and multipliers are flattened into single arrays
 # For 3 metrics with 3 thresholds each, the arrays should have 9 elements
@@ -135,18 +135,18 @@ cast send $FACTORY_ADDRESS \
     0x4d79206e65772063726561746f7220646174612020202020202020202020202020 \
     --rpc-url $RPC_URL \
     --private-key $PRIVATE_KEY
-```
+\`\`\`
 
 ### 2. Get Deployed Tokens
-```bash
+\`\`\`bash
 # Get tokens deployed by a specific creator
 cast call $FACTORY_ADDRESS "getDeployedTokens(address)" $CREATOR_ADDRESS --rpc-url $RPC_URL
-```
+\`\`\`
 
 ## 💸 Token Transfer Operations
 
 ### 1. Transfer Tokens
-```bash
+\`\`\`bash
 # Transfer tokens to another address
 cast send $TOKEN_ADDRESS \
     "transfer(address,uint256)" \
@@ -154,10 +154,10 @@ cast send $TOKEN_ADDRESS \
     1000000000000000000000 \
     --rpc-url $RPC_URL \
     --private-key $PRIVATE_KEY
-```
+\`\`\`
 
 ### 2. Approve and TransferFrom
-```bash
+\`\`\`bash
 # Approve spender
 cast send $TOKEN_ADDRESS \
     "approve(address,uint256)" \
@@ -168,7 +168,7 @@ cast send $TOKEN_ADDRESS \
 
 # Check allowance
 cast call $TOKEN_ADDRESS "allowance(address,address)" $CREATOR_ADDRESS 0xSpenderAddress --rpc-url $RPC_URL
-```
+\`\`\`
 
 ## 📊 Metric Threshold Reference
 
@@ -189,17 +189,17 @@ cast call $TOKEN_ADDRESS "allowance(address,address)" $CREATOR_ADDRESS 0xSpender
 ## 🔥 Batch Operations Script
 
 ### Check All Metric Values
-```bash
+\`\`\`bash
 #!/bin/bash
 echo "=== Current Metric Values ==="
 for metric in "followers" "engagement_rate" "reach" "influence_score" "authenticity_score" "growth_rate"; do
     echo "📊 $metric:"
     cast call $TOKEN_ADDRESS "metrics(string)" "$metric" --rpc-url $RPC_URL
 done
-```
+\`\`\`
 
 ### Update Multiple Metrics
-```bash
+\`\`\`bash
 #!/bin/bash
 echo "=== Updating Multiple Metrics ==="
 
@@ -213,17 +213,17 @@ cast send $TOKEN_ADDRESS "updateMetricValue(string,uint256)" "engagement_rate" 6
 cast send $TOKEN_ADDRESS "updateMetricValue(string,uint256)" "reach" 600000 --rpc-url $RPC_URL --private-key $PRIVATE_KEY
 
 echo "✅ All metrics updated!"
-```
+\`\`\`
 
 ### Claim All Available Rewards
-```bash
+\`\`\`bash
 #!/bin/bash
 echo "=== Claiming All Available Rewards ==="
 for metric in "followers" "engagement_rate" "reach" "influence_score" "authenticity_score" "growth_rate"; do
     echo "🎁 Attempting to claim reward for $metric..."
     cast send $TOKEN_ADDRESS "claimReward(string)" "$metric" --rpc-url $RPC_URL --private-key $PRIVATE_KEY
 done
-```
+\`\`\`
 
 ## 🛡️ Security Best Practices
 
@@ -236,25 +236,25 @@ done
 ## 🔍 Debugging & Monitoring
 
 ### Monitor Events
-```bash
+\`\`\`bash
 # Watch for metric updates
 cast logs --address $TOKEN_ADDRESS --rpc-url $RPC_URL
 
 # Watch for reward claims
 cast logs --address $TOKEN_ADDRESS --rpc-url $RPC_URL
-```
+\`\`\`
 
 ### Check Transaction Status
-```bash
+\`\`\`bash
 # Check specific transaction
 cast tx 0xTransactionHash --rpc-url $RPC_URL
-```
+\`\`\`
 
 ### Estimate Gas
-```bash
+\`\`\`bash
 # Estimate gas for metric update
 cast estimate $TOKEN_ADDRESS "updateMetricValue(string,uint256)" "followers" 2000 --rpc-url $RPC_URL
-```
+\`\`\`
 
 ---
 *Interactive guide for Chain ID 150179125 contracts*

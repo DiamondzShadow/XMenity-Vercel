@@ -191,8 +191,10 @@ Nonce: ${nonce}`
                 {(() => {
                   if (!connected) {
                     return (
-                      <Button onClick={openConnectModal} className="bg-purple-600 hover:bg-purple-700" size="lg">
-                        <Wallet className="mr-2 h-5 w-5" />
+                      <Button
+                        onClick={openConnectModal}
+                        className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                      >
                         Connect Wallet
                       </Button>
                     )
@@ -200,13 +202,48 @@ Nonce: ${nonce}`
 
                   if (chain.unsupported) {
                     return (
-                      <Button onClick={openChainModal} variant="destructive" size="lg">
+                      <Button onClick={openChainModal} variant="destructive">
                         Wrong Network
                       </Button>
                     )
                   }
 
-                  return null
+                  return (
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={openChainModal}
+                        variant="outline"
+                        className="flex items-center gap-2 bg-transparent"
+                      >
+                        {chain.hasIcon && (
+                          <div
+                            style={{
+                              background: chain.iconBackground,
+                              width: 12,
+                              height: 12,
+                              borderRadius: 999,
+                              overflow: "hidden",
+                              marginRight: 4,
+                            }}
+                          >
+                            {chain.iconUrl && (
+                              <img
+                                alt={chain.name ?? "Chain icon"}
+                                src={chain.iconUrl || "/placeholder.svg"}
+                                style={{ width: 12, height: 12 }}
+                              />
+                            )}
+                          </div>
+                        )}
+                        {chain.name}
+                      </Button>
+
+                      <Button onClick={openAccountModal} variant="outline">
+                        {account.displayName}
+                        {account.displayBalance ? ` (${account.displayBalance})` : ""}
+                      </Button>
+                    </div>
+                  )
                 })()}
               </div>
             )

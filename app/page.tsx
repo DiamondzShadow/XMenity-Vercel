@@ -1,371 +1,409 @@
 "use client"
 
+import { useState, useEffect } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ConnectButton } from "@rainbow-me/rainbowkit"
-import { Rocket, TrendingUp, Shield, Users, Zap, Star, ArrowRight, Twitter, BarChart3, Coins } from "lucide-react"
-import Link from "next/link"
-import Image from "next/image"
+import { WalletConnect } from "@/components/wallet-connect"
+import { Zap, Shield, BarChart3, ArrowRight, CheckCircle, Globe, Rocket, Target } from "lucide-react"
+import { supabaseOperations } from "@/lib/supabase"
+
+interface Token {
+  id: string
+  name: string
+  symbol: string
+  current_price: string
+  verified: boolean
+  metrics: {
+    followers: number
+    engagement: number
+    influence: number
+  }
+  users?: {
+    display_name: string
+    twitter_username: string
+    profile_image: string
+  }
+}
 
 export default function HomePage() {
-  const featuredTokens = [
-    {
-      id: "1",
-      name: "CreatorCoin",
-      symbol: "CREATE",
-      creator: "@creator_name",
-      price: "$0.45",
-      change: "+12.5%",
-      holders: "1.2K",
-      volume: "$45.2K",
-      image: "/placeholder.svg?height=40&width=40&text=CC",
-    },
-    {
-      id: "2",
-      name: "StreamToken",
-      symbol: "STREAM",
-      creator: "@streamer_pro",
-      price: "$0.78",
-      change: "+8.3%",
-      holders: "856",
-      volume: "$32.1K",
-      image: "/placeholder.svg?height=40&width=40&text=ST",
-    },
-    {
-      id: "3",
-      name: "InfluenceCoin",
-      symbol: "INFL",
-      creator: "@influence_hub",
-      price: "$1.23",
-      change: "+15.7%",
-      holders: "2.1K",
-      volume: "$67.8K",
-      image: "/placeholder.svg?height=40&width=40&text=IC",
-    },
-  ]
+  const [featuredTokens, setFeaturedTokens] = useState<Token[]>([])
+  const [stats, setStats] = useState({
+    totalTokens: 0,
+    totalCreators: 0,
+    totalVolume: 0,
+    avgGrowth: 0,
+  })
+  const [loading, setLoading] = useState(true)
 
-  const features = [
-    {
-      icon: <Rocket className="h-6 w-6" />,
-      title: "Easy Token Launch",
-      description: "Launch your social token in minutes with our intuitive interface",
-    },
-    {
-      icon: <Shield className="h-6 w-6" />,
-      title: "InsightIQ Verified",
-      description: "All creators are verified through InsightIQ for authenticity",
-    },
-    {
-      icon: <TrendingUp className="h-6 w-6" />,
-      title: "Milestone-Based",
-      description: "Token supply adjusts based on your social media milestones",
-    },
-    {
-      icon: <Users className="h-6 w-6" />,
-      title: "Community Driven",
-      description: "Build and engage with your token community",
-    },
-    {
-      icon: <Zap className="h-6 w-6" />,
-      title: "Arbitrum Powered",
-      description: "Fast and low-cost transactions on Arbitrum network",
-    },
-    {
-      icon: <BarChart3 className="h-6 w-6" />,
-      title: "Real-time Analytics",
-      description: "Track your token performance with detailed analytics",
-    },
-  ]
+  useEffect(() => {
+    fetchData()
+  }, [])
 
-  const stats = [
-    { label: "Tokens Launched", value: "1,234" },
-    { label: "Total Volume", value: "$2.4M" },
-    { label: "Active Creators", value: "567" },
-    { label: "Community Members", value: "12.3K" },
-  ]
+  const fetchData = async () => {
+    try {
+      const tokens = await supabaseOperations.getTokens(6)
+      setFeaturedTokens(tokens as Token[])
+
+      // Calculate stats from tokens
+      setStats({
+        totalTokens: tokens.length * 8, // Simulate more tokens
+        totalCreators: tokens.length * 6, // Simulate more creators
+        totalVolume: tokens.reduce((sum, token) => sum + Number.parseFloat(token.current_price || "0") * 1000, 0),
+        avgGrowth: 24.5, // Mock average growth
+      })
+    } catch (error) {
+      console.error("Error fetching data:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm dark:bg-gray-900/80 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
-              <Coins className="h-5 w-5 text-white" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      {/* Navigation */}
+      <nav className="border-b border-white/10 bg-black/20 backdrop-blur-md">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
+                <Zap className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-xl font-bold text-white">XMenity Tube</span>
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-              XMenity
-            </span>
+
+            <div className="hidden md:flex items-center space-x-6">
+              <Link href="/explore" className="text-gray-300 hover:text-white transition-colors">
+                Explore
+              </Link>
+              <Link href="/launch" className="text-gray-300 hover:text-white transition-colors">
+                Launch Token
+              </Link>
+              <Link href="/analytics" className="text-gray-300 hover:text-white transition-colors">
+                Analytics
+              </Link>
+            </div>
+
+            <WalletConnect />
           </div>
-
-          <nav className="hidden md:flex items-center space-x-6">
-            <Link
-              href="/explore"
-              className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors"
-            >
-              Explore
-            </Link>
-            <Link
-              href="/launch"
-              className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors"
-            >
-              Launch Token
-            </Link>
-            <Link
-              href="/test-token"
-              className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors"
-            >
-              Test Suite
-            </Link>
-          </nav>
-
-          <ConnectButton />
         </div>
-      </header>
+      </nav>
 
       {/* Hero Section */}
       <section className="py-20 px-4">
         <div className="container mx-auto text-center">
-          <Badge variant="secondary" className="mb-4">
-            <Star className="h-3 w-3 mr-1" />
-            Powered by InsightIQ & Arbitrum
-          </Badge>
+          <div className="max-w-4xl mx-auto">
+            <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
+              Turn Your
+              <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+                {" "}
+                Social Influence{" "}
+              </span>
+              Into Value
+            </h1>
+            <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+              Create milestone-based social tokens that grow with your audience. Reward your community and monetize your
+              influence with XMenity Tube.
+            </p>
 
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-purple-600 via-blue-600 to-teal-600 bg-clip-text text-transparent">
-            Launch Your Social Token
-          </h1>
-
-          <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
-            Create milestone-based tokens for your X (Twitter) community. Verified creators, automated tokenomics, and
-            seamless Web3 integration.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Button
-              asChild
-              size="lg"
-              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-            >
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
               <Link href="/launch">
-                <Rocket className="h-5 w-5 mr-2" />
-                Launch Your Token
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-3 text-lg"
+                >
+                  Launch Your Token
+                  <ArrowRight className="ml-2 w-5 h-5" />
+                </Button>
               </Link>
-            </Button>
-
-            <Button asChild variant="outline" size="lg">
               <Link href="/explore">
-                Explore Tokens
-                <ArrowRight className="h-5 w-5 ml-2" />
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-white/20 text-white hover:bg-white/10 px-8 py-3 text-lg bg-transparent"
+                >
+                  Explore Tokens
+                </Button>
               </Link>
-            </Button>
-          </div>
+            </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
-            {stats.map((stat, index) => (
-              <div key={index} className="text-center">
-                <div className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{stat.value}</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">{stat.label}</div>
+            {/* Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-white">{stats.totalTokens}+</div>
+                <div className="text-gray-400">Active Tokens</div>
               </div>
-            ))}
+              <div className="text-center">
+                <div className="text-3xl font-bold text-white">{stats.totalCreators}+</div>
+                <div className="text-gray-400">Creators</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-white">${stats.totalVolume.toFixed(0)}K</div>
+                <div className="text-gray-400">Total Volume</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-white">{stats.avgGrowth}%</div>
+                <div className="text-gray-400">Avg Growth</div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Featured Tokens */}
-      <section className="py-16 px-4 bg-white/50 dark:bg-gray-800/50">
+      <section className="py-16 px-4">
         <div className="container mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Featured Tokens</h2>
-            <p className="text-gray-600 dark:text-gray-300">Discover trending social tokens from verified creators</p>
+            <h2 className="text-3xl font-bold text-white mb-4">Featured Social Tokens</h2>
+            <p className="text-gray-400 max-w-2xl mx-auto">
+              Discover trending tokens from top creators and influencers
+            </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {featuredTokens.map((token) => (
-              <Card key={token.id} className="hover:shadow-lg transition-shadow cursor-pointer">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <Image
-                        src={token.image || "/placeholder.svg"}
-                        alt={token.name}
-                        width={40}
-                        height={40}
-                        className="rounded-full"
-                      />
-                      <div>
-                        <CardTitle className="text-lg">{token.name}</CardTitle>
-                        <CardDescription>{token.creator}</CardDescription>
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <Card key={i} className="bg-white/5 border-white/10 animate-pulse">
+                  <CardContent className="p-6">
+                    <div className="h-32 bg-white/10 rounded mb-4"></div>
+                    <div className="h-4 bg-white/10 rounded mb-2"></div>
+                    <div className="h-4 bg-white/10 rounded w-2/3"></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featuredTokens.map((token) => (
+                <Card
+                  key={token.id}
+                  className="bg-white/5 border-white/10 hover:bg-white/10 transition-all duration-300 group"
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+                          <span className="text-white font-bold">{token.symbol.charAt(0)}</span>
+                        </div>
+                        <div>
+                          <CardTitle className="text-white text-lg">{token.name}</CardTitle>
+                          <CardDescription className="text-gray-400">${token.symbol}</CardDescription>
+                        </div>
+                      </div>
+                      {token.verified && (
+                        <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Verified
+                        </Badge>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-400">Price</span>
+                        <span className="text-white font-bold">${token.current_price}</span>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 text-sm">
+                        <div className="text-center">
+                          <div className="text-white font-semibold">{token.metrics.followers.toLocaleString()}</div>
+                          <div className="text-gray-400">Followers</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-white font-semibold">{token.metrics.engagement}%</div>
+                          <div className="text-gray-400">Engagement</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-white font-semibold">{token.metrics.influence}</div>
+                          <div className="text-gray-400">Influence</div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-2 pt-2">
+                        <img
+                          src={token.users?.profile_image || "/placeholder-user.jpg"}
+                          alt={token.users?.display_name || "Creator"}
+                          className="w-6 h-6 rounded-full"
+                        />
+                        <span className="text-gray-300 text-sm">@{token.users?.twitter_username || "creator"}</span>
                       </div>
                     </div>
-                    <Badge variant="secondary">{token.symbol}</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <div className="text-gray-500 dark:text-gray-400">Price</div>
-                      <div className="font-semibold">{token.price}</div>
-                    </div>
-                    <div>
-                      <div className="text-gray-500 dark:text-gray-400">24h Change</div>
-                      <div className="font-semibold text-green-600">{token.change}</div>
-                    </div>
-                    <div>
-                      <div className="text-gray-500 dark:text-gray-400">Holders</div>
-                      <div className="font-semibold">{token.holders}</div>
-                    </div>
-                    <div>
-                      <div className="text-gray-500 dark:text-gray-400">Volume</div>
-                      <div className="font-semibold">{token.volume}</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
 
           <div className="text-center mt-8">
-            <Button asChild variant="outline">
-              <Link href="/explore">
+            <Link href="/explore">
+              <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 bg-transparent">
                 View All Tokens
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Link>
-            </Button>
+                <ArrowRight className="ml-2 w-4 h-4" />
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* Features */}
+      {/* Features Section */}
       <section className="py-16 px-4">
         <div className="container mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Why Choose XMenity?</h2>
-            <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              The most comprehensive platform for social token creation with built-in verification and milestone
-              tracking
+            <h2 className="text-3xl font-bold text-white mb-4">Why Choose XMenity Tube?</h2>
+            <p className="text-gray-400 max-w-2xl mx-auto">
+              The most advanced platform for creating and trading social tokens
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <Card key={index} className="text-center hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4 text-white">
-                    {feature.icon}
-                  </div>
-                  <CardTitle className="text-xl">{feature.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-base">{feature.description}</CardDescription>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <Card className="bg-white/5 border-white/10">
+              <CardHeader>
+                <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mb-4">
+                  <Target className="w-6 h-6 text-purple-400" />
+                </div>
+                <CardTitle className="text-white">Milestone-Based Rewards</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-400">
+                  Set follower and engagement milestones that automatically unlock token rewards for your community.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/5 border-white/10">
+              <CardHeader>
+                <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center mb-4">
+                  <BarChart3 className="w-6 h-6 text-blue-400" />
+                </div>
+                <CardTitle className="text-white">Real-Time Analytics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-400">
+                  Track your token performance, holder growth, and social metrics with comprehensive analytics.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/5 border-white/10">
+              <CardHeader>
+                <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center mb-4">
+                  <Shield className="w-6 h-6 text-green-400" />
+                </div>
+                <CardTitle className="text-white">Verified Creators</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-400">
+                  InsightIQ verification ensures authentic creators with real influence and engagement.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/5 border-white/10">
+              <CardHeader>
+                <div className="w-12 h-12 bg-yellow-500/20 rounded-lg flex items-center justify-center mb-4">
+                  <Zap className="w-6 h-6 text-yellow-400" />
+                </div>
+                <CardTitle className="text-white">Instant Deployment</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-400">
+                  Deploy your social token in minutes with our streamlined creation process.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/5 border-white/10">
+              <CardHeader>
+                <div className="w-12 h-12 bg-red-500/20 rounded-lg flex items-center justify-center mb-4">
+                  <Globe className="w-6 h-6 text-red-400" />
+                </div>
+                <CardTitle className="text-white">Multi-Platform Support</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-400">
+                  Connect your Twitter, Instagram, TikTok, and YouTube accounts for comprehensive metrics.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/5 border-white/10">
+              <CardHeader>
+                <div className="w-12 h-12 bg-indigo-500/20 rounded-lg flex items-center justify-center mb-4">
+                  <Rocket className="w-6 h-6 text-indigo-400" />
+                </div>
+                <CardTitle className="text-white">Community Growth</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-400">
+                  Built-in tools to grow your community and increase token holder engagement.
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white">
-        <div className="container mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to Launch Your Social Token?</h2>
-          <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">
-            Join hundreds of creators who have already launched their tokens on XMenity. Get verified, set your
-            milestones, and start building your community.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" variant="secondary" className="bg-white text-purple-600 hover:bg-gray-100">
-              <Link href="/launch">
-                <Rocket className="h-5 w-5 mr-2" />
-                Launch Now
-              </Link>
-            </Button>
-
-            <Button
-              asChild
-              size="lg"
-              variant="outline"
-              className="border-white text-white hover:bg-white/10 bg-transparent"
-            >
-              <Link href="/test-token">
-                <Zap className="h-5 w-5 mr-2" />
-                Try Test Suite
-              </Link>
-            </Button>
-          </div>
+      <section className="py-16 px-4">
+        <div className="container mx-auto">
+          <Card className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 border-purple-500/30">
+            <CardContent className="p-12 text-center">
+              <h2 className="text-3xl font-bold text-white mb-4">Ready to Launch Your Social Token?</h2>
+              <p className="text-gray-300 mb-8 max-w-2xl mx-auto">
+                Join thousands of creators who are already monetizing their influence with XMenity Tube. Get verified,
+                set your milestones, and start earning.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link href="/launch">
+                  <Button
+                    size="lg"
+                    className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-3"
+                  >
+                    Get Started Now
+                    <ArrowRight className="ml-2 w-5 h-5" />
+                  </Button>
+                </Link>
+                <Link href="/explore">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="border-white/20 text-white hover:bg-white/10 px-8 py-3 bg-transparent"
+                  >
+                    Explore Platform
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="py-12 px-4 bg-gray-900 text-white">
+      <footer className="border-t border-white/10 bg-black/20 py-8 px-4">
         <div className="container mx-auto">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
-                  <Coins className="h-5 w-5 text-white" />
-                </div>
-                <span className="text-xl font-bold">XMenity</span>
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <div className="flex items-center space-x-2 mb-4 md:mb-0">
+              <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-blue-500 rounded flex items-center justify-center">
+                <Zap className="w-4 h-4 text-white" />
               </div>
-              <p className="text-gray-400">The future of social token creation for X (Twitter) creators.</p>
+              <span className="text-white font-semibold">XMenity Tube</span>
             </div>
-
-            <div>
-              <h3 className="font-semibold mb-4">Platform</h3>
-              <ul className="space-y-2 text-gray-400">
-                <li>
-                  <Link href="/launch" className="hover:text-white transition-colors">
-                    Launch Token
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/explore" className="hover:text-white transition-colors">
-                    Explore
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/test-token" className="hover:text-white transition-colors">
-                    Test Suite
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-semibold mb-4">Resources</h3>
-              <ul className="space-y-2 text-gray-400">
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Documentation
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    API
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Support
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-semibold mb-4">Connect</h3>
-              <div className="flex space-x-4">
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  <Twitter className="h-5 w-5" />
-                </a>
-              </div>
+            <div className="flex space-x-6 text-gray-400">
+              <Link href="/terms" className="hover:text-white transition-colors">
+                Terms
+              </Link>
+              <Link href="/privacy" className="hover:text-white transition-colors">
+                Privacy
+              </Link>
+              <Link href="/support" className="hover:text-white transition-colors">
+                Support
+              </Link>
             </div>
           </div>
-
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 XMenity. All rights reserved.</p>
+          <div className="text-center text-gray-400 mt-4 pt-4 border-t border-white/10">
+            © 2024 XMenity Tube. All rights reserved.
           </div>
         </div>
       </footer>

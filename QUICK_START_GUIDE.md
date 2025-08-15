@@ -9,7 +9,7 @@
 
 ## 📋 Step 1: Environment Setup
 
-```bash
+\`\`\`bash
 # Clone or create your project
 mkdir creator-token-app && cd creator-token-app
 npm init -y
@@ -25,11 +25,11 @@ CUSTOM_ARB_RPC_URL=your_rpc_url_here
 JWT_SECRET=your_jwt_secret_here
 INSIGHT_IQ_API_KEY=your_insight_iq_key_here
 EOF
-```
+\`\`\`
 
 ## 📋 Step 2: Contract Addresses & ABI
 
-```typescript
+\`\`\`typescript
 // config/contracts.ts
 export const CONTRACTS = {
   FACTORY_ADDRESS: '0x477B1D346a477FD3190da45c29F226f33D09Dc93',
@@ -39,12 +39,12 @@ export const CONTRACTS = {
 
 // Copy ModularToken ABI from /workspace/abi/ModularToken.json
 export const MODULAR_TOKEN_ABI = [...]; // Use the generated ABI
-```
+\`\`\`
 
 ## 📋 Step 3: Basic Contract Interaction
 
 ### A. Read Contract State
-```typescript
+\`\`\`typescript
 // examples/readContract.ts
 import { ThirdwebSDK } from "@thirdweb-dev/sdk";
 import { CONTRACTS, MODULAR_TOKEN_ABI } from '../config/contracts';
@@ -76,10 +76,10 @@ async function getTokenMetrics() {
 }
 
 getTokenMetrics().catch(console.error);
-```
+\`\`\`
 
 ### B. Update Metrics (Creator Only)
-```typescript
+\`\`\`typescript
 // examples/updateMetrics.ts
 import { ThirdwebSDK } from "@thirdweb-dev/sdk";
 
@@ -114,10 +114,10 @@ async function updateCreatorMetrics() {
 }
 
 updateCreatorMetrics().catch(console.error);
-```
+\`\`\`
 
 ### C. Claim Rewards
-```typescript
+\`\`\`typescript
 // examples/claimRewards.ts
 async function claimAvailableRewards() {
   const sdk = ThirdwebSDK.fromPrivateKey(process.env.PRIVATE_KEY!, { /* config */ });
@@ -137,11 +137,11 @@ async function claimAvailableRewards() {
 }
 
 claimAvailableRewards().catch(console.error);
-```
+\`\`\`
 
 ## 📋 Step 4: Deploy New Token Through Factory
 
-```typescript
+\`\`\`typescript
 // examples/deployToken.ts
 async function deployNewToken() {
   const sdk = ThirdwebSDK.fromPrivateKey(process.env.PRIVATE_KEY!, { /* config */ });
@@ -186,11 +186,11 @@ async function deployNewToken() {
 }
 
 deployNewToken().catch(console.error);
-```
+\`\`\`
 
 ## 📋 Step 5: React Component Example
 
-```tsx
+\`\`\`tsx
 // components/TokenDashboard.tsx
 import { useState, useEffect } from 'react';
 import { ThirdwebSDK } from "@thirdweb-dev/sdk";
@@ -280,22 +280,22 @@ export function TokenDashboard({ tokenAddress }: { tokenAddress: string }) {
     </div>
   );
 }
-```
+\`\`\`
 
 ## 📋 Step 6: Test Everything
 
-```bash
+\`\`\`bash
 # Run the examples
 npx ts-node examples/readContract.ts
 npx ts-node examples/updateMetrics.ts  
 npx ts-node examples/claimRewards.ts
 npx ts-node examples/deployToken.ts
-```
+\`\`\`
 
 ## 🔧 Available Scripts
 
 ### Package.json Scripts
-```json
+\`\`\`json
 {
   "scripts": {
     "read-metrics": "ts-node examples/readContract.ts",
@@ -306,7 +306,7 @@ npx ts-node examples/deployToken.ts
     "build": "next build"
   }
 }
-```
+\`\`\`
 
 ## 🚨 Important Notes
 
@@ -331,7 +331,7 @@ npx ts-node examples/deployToken.ts
 
 ## 🔗 Useful Commands
 
-```bash
+\`\`\`bash
 # Check token balance
 cast call 0x7f2BFF3ecF09B430f01271A892b1dB4C533F568E "balanceOf(address)" YOUR_ADDRESS --rpc-url custom_arb
 
@@ -340,7 +340,7 @@ cast call 0x7f2BFF3ecF09B430f01271A892b1dB4C533F568E "getMetrics()" --rpc-url cu
 
 # Monitor events
 cast logs --address 0x7f2BFF3ecF09B430f01271A892b1dB4C533F568E --rpc-url custom_arb
-```
+\`\`\`
 
 ## 🆘 Troubleshooting
 

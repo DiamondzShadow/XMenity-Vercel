@@ -11,17 +11,17 @@ This guide provides a complete integration strategy for your deployed TokenFacto
 - **Chain**: 150179125 (Custom Arbitrum)
 
 ### Security Flow (Recommended)
-```
+\`\`\`
 Frontend → Backend API → InsightIQ Verification → Contract Deployment
    ↓           ↓               ↓                        ↓
   JWT      Validation    Metrics Fetch           TokenFactory.deploy
-```
+\`\`\`
 
 ## 🔐 1. Off-Chain Verification Strategy
 
 ### A. JWT & InsightIQ Integration Pipeline
 
-```mermaid
+\`\`\`mermaid
 graph LR
     A[Creator Frontend] -->|JWT Token| B[Backend API]
     B -->|Verify JWT| C[JWT Validation]
@@ -31,7 +31,7 @@ graph LR
     E -->|Deploy Contract| F[TokenFactory]
     F -->|Return Address| B
     B -->|Success Response| A
-```
+\`\`\`
 
 ### B. Backend Security Checklist
 - ✅ **JWT Validation**: Decode, verify signature, check expiration
@@ -44,7 +44,7 @@ graph LR
 
 ### A. Extract ABIs from Your Deployed Contracts
 
-```bash
+\`\`\`bash
 # Generate ABI files
 forge inspect TokenFactory abi > abi/TokenFactory.json
 forge inspect ModularToken abi > abi/ModularToken.json
@@ -52,11 +52,11 @@ forge inspect ModularToken abi > abi/ModularToken.json
 # Generate TypeScript interfaces
 forge inspect TokenFactory abi | jq > src/abi/TokenFactory.ts
 forge inspect ModularToken abi | jq > src/abi/ModularToken.ts
-```
+\`\`\`
 
 ### B. TypeScript Interface Generation
 
-```typescript
+\`\`\`typescript
 // types/contracts.ts
 export interface MetricConfig {
   name: string;
@@ -83,13 +83,13 @@ export interface TokenDeploymentParams {
   creator: string;
   creatorData: string;
 }
-```
+\`\`\`
 
 ## 🚀 3. Backend Implementation (Node.js/Next.js)
 
 ### A. Environment Configuration
 
-```typescript
+\`\`\`typescript
 // config/contracts.ts
 export const CONTRACTS = {
   FACTORY_ADDRESS: '0x477B1D346a477FD3190da45c29F226f33D09Dc93',
@@ -98,11 +98,11 @@ export const CONTRACTS = {
   RPC_URL: process.env.CUSTOM_ARB_RPC_URL,
   PRIVATE_KEY: process.env.DEPLOYER_PRIVATE_KEY,
 } as const;
-```
+\`\`\`
 
 ### B. Backend API Route (`/api/tokens/deploy`)
 
-```typescript
+\`\`\`typescript
 // pages/api/tokens/deploy.ts (Next.js) or routes/tokens.ts (Express)
 import { ThirdwebSDK } from "@thirdweb-dev/sdk";
 import jwt from 'jsonwebtoken';
@@ -237,11 +237,11 @@ async function prepareContractParameters(
     creatorData: ethers.utils.hexlify(ethers.utils.toUtf8Bytes(body.creatorData || `Creator: ${creatorAddress}`))
   };
 }
-```
+\`\`\`
 
 ### C. Frontend Integration (React/Next.js)
 
-```typescript
+\`\`\`typescript
 // components/TokenDeployment.tsx
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
@@ -350,13 +350,13 @@ export function TokenDeployment() {
     </div>
   );
 }
-```
+\`\`\`
 
 ## 🔧 4. Thirdweb SDK Integration Examples
 
 ### A. Contract Interaction Service
 
-```typescript
+\`\`\`typescript
 // services/contractService.ts
 import { ThirdwebSDK, SmartContract } from "@thirdweb-dev/sdk";
 import { ModularToken, TokenFactory } from '../abi';
@@ -453,11 +453,11 @@ export class ContractService {
     return event?.args?.tokenAddress || '';
   }
 }
-```
+\`\`\`
 
 ### B. React Hooks for Contract Interaction
 
-```typescript
+\`\`\`typescript
 // hooks/useContract.ts
 import { useState, useEffect } from 'react';
 import { ContractService } from '../services/contractService';
@@ -511,12 +511,12 @@ export function useCreatorTokens(creatorAddress: string) {
 
   return { tokens, loading };
 }
-```
+\`\`\`
 
 ## 🔒 5. Security Best Practices
 
 ### A. JWT Configuration
-```typescript
+\`\`\`typescript
 // utils/jwt.ts
 import jwt from 'jsonwebtoken';
 
@@ -539,10 +539,10 @@ export function verifyCreatorJWT(token: string) {
     return { valid: false, error: error.message };
   }
 }
-```
+\`\`\`
 
 ### B. Rate Limiting & Access Control
-```typescript
+\`\`\`typescript
 // middleware/rateLimiter.ts
 import rateLimit from 'express-rate-limit';
 
@@ -560,12 +560,12 @@ export async function addBackendToWhitelist(contractAddress: string) {
   // If your contract has access control
   await token.call("grantRole", [DEPLOYER_ROLE, process.env.BACKEND_ADDRESS]);
 }
-```
+\`\`\`
 
 ## 🧪 6. Testing Strategy
 
 ### A. Integration Tests
-```typescript
+\`\`\`typescript
 // tests/integration.test.ts
 import { ContractService } from '../services/contractService';
 
@@ -597,13 +597,13 @@ describe('Token Deployment Integration', () => {
     expect(claimResult.transactionHash).toBeTruthy();
   });
 });
-```
+\`\`\`
 
 ### B. Frontend Testing
-```typescript
+\`\`\`typescript
 // Use tools like React Testing Library with mock API responses
 // Mock the `/api/tokens/deploy` endpoint for E2E tests
-```
+\`\`\`
 
 ## 📝 7. Summary Checklist
 

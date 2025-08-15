@@ -62,22 +62,22 @@ Successfully deployed TokenFactory and ModularToken contracts on Chain ID: **150
 ## Deployment Scripts Used
 
 ### TokenFactory Deployment
-```bash
+\`\`\`bash
 forge script script/DeployFactory.s.sol \
     --rpc-url custom_arb \
     --broadcast \
     --private-key $PRIVATE_KEY \
     -vvvv
-```
+\`\`\`
 
 ### ModularToken Deployment
-```bash
+\`\`\`bash
 # Note: Private key is automatically read from environment variable PRIVATE_KEY
 forge script script/DeployModularToken.s.sol \
     --rpc-url custom_arb \
     --broadcast \
     -vvvv
-```
+\`\`\`
 
 ## Chain Information
 - **Chain ID**: 150179125
@@ -102,7 +102,7 @@ forge script script/DeployModularToken.s.sol \
 ## Contract Interaction Examples
 
 ### TokenFactory Interactions
-```solidity
+\`\`\`solidity
 // Deploy new ModularToken
 address newToken = tokenFactory.deployModularToken(
     "New Creator Token",
@@ -114,10 +114,10 @@ address newToken = tokenFactory.deployModularToken(
     creator,
     "Initial creator data"
 );
-```
+\`\`\`
 
 ### ModularToken Interactions
-```solidity
+\`\`\`solidity
 // Update specific metric value
 modularToken.updateMetricValue(
     "followers",
@@ -129,7 +129,7 @@ modularToken.claimReward("followers");
 
 // Get current metrics
 (string[] memory names, uint256[] memory values, , ) = modularToken.getMetrics();
-```
+\`\`\`
 
 ---
 *Deployment completed successfully on block 87*

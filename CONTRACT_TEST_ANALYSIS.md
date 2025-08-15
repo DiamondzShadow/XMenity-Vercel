@@ -89,14 +89,14 @@ The contract implements a tiered reward system:
 ## 🎯 Contract State After Tests
 
 ### Current Metric Values:
-```
+\`\`\`
 followers: 1500 (threshold 1000 claimed ✅)
 engagement_rate: 0
 reach: 0
 influence_score: 0
 authenticity_score: 0
 growth_rate: 0
-```
+\`\`\`
 
 ### Available Rewards:
 **Next claimable reward for followers**: 5,000 threshold (2x multiplier = 2,000 tokens)
@@ -111,40 +111,40 @@ growth_rate: 0
 ### Recommended Test Scenarios:
 
 1. **Test Higher Thresholds**:
-   ```bash
+   \`\`\`bash
    # Update followers to 5000 to claim next reward
    cast send 0x7f2BFF3ecF09B430f01271A892b1dB4C533F568E \
        "updateMetricValue(string,uint256)" \
        "followers" 5000 \
        --rpc-url custom_arb --private-key $PRIVATE_KEY
-   ```
+   \`\`\`
 
 2. **Test Other Metrics**:
-   ```bash
+   \`\`\`bash
    # Update engagement_rate
    cast send 0x7f2BFF3ecF09B430f01271A892b1dB4C533F568E \
        "updateMetricValue(string,uint256)" \
        "engagement_rate" 4 \
        --rpc-url custom_arb --private-key $PRIVATE_KEY
-   ```
+   \`\`\`
 
 3. **Test Token Transfers**:
-   ```bash
+   \`\`\`bash
    # Transfer tokens to another address
    cast send 0x7f2BFF3ecF09B430f01271A892b1dB4C533F568E \
        "transfer(address,uint256)" \
        <recipient_address> 1000000000000000000000 \
        --rpc-url custom_arb --private-key $PRIVATE_KEY
-   ```
+   \`\`\`
 
 4. **Test Creator Data Updates**:
-   ```bash
+   \`\`\`bash
    # Update creator metadata
    cast send 0x7f2BFF3ecF09B430f01271A892b1dB4C533F568E \
        "updateCreatorData(bytes)" \
        0x... \
        --rpc-url custom_arb --private-key $PRIVATE_KEY
-   ```
+   \`\`\`
 
 ## ⚠️ Security Notes
 

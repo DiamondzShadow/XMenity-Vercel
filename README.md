@@ -35,7 +35,7 @@ XMenity is an enterprise-grade social token platform that enables content creato
 ## 🏗️ Architecture
 
 ### Frontend Architecture
-```
+\`\`\`
 app/
 ├── api/                    # Next.js API routes
 │   ├── auth/              # Authentication endpoints
@@ -45,20 +45,20 @@ app/
 ├── explore/               # Token discovery
 ├── launch/                # Token creation
 └── components/            # Reusable UI components
-```
+\`\`\`
 
 ### Backend Server
-```
+\`\`\`
 server/
 └── index.js              # Express.js production server
     ├── Authentication     # JWT + SIWE verification
     ├── Rate Limiting      # Request throttling
     ├── Security          # Helmet, CORS, CSP
     └── API Routes        # RESTful endpoints
-```
+\`\`\`
 
 ### Database Schema
-```
+\`\`\`
 📊 Production-Grade Prisma Schema
 ├── Users              # Creator profiles & authentication
 ├── Tokens             # Social token contracts
@@ -68,7 +68,7 @@ server/
 ├── Rewards            # Token distributions
 ├── Notifications      # Real-time alerts
 └── Analytics          # Performance metrics
-```
+\`\`\`
 
 ## 🛠️ Quick Start
 
@@ -82,97 +82,97 @@ server/
 ### Installation
 
 1. **Clone & Install**
-```bash
+\`\`\`bash
 git clone https://github.com/DiamondzShadow/XMenity-Vercel.git
 cd XMenity-Vercel
 npm install
-```
+\`\`\`
 
 2. **Environment Setup**
-```bash
+\`\`\`bash
 cp .env.example .env
 # Configure your environment variables
-```
+\`\`\`
 
 3. **Database Setup**
-```bash
+\`\`\`bash
 npm run db:generate
 npm run db:push
 npm run db:seed
-```
+\`\`\`
 
 4. **Development**
-```bash
+\`\`\`bash
 # Start frontend
 npm run dev
 
 # Start backend server (separate terminal)
 npm run server:dev
-```
+\`\`\`
 
 5. **Production Build**
-```bash
+\`\`\`bash
 npm run build
 npm start
-```
+\`\`\`
 
 ## 🔧 Configuration
 
 ### Required Environment Variables
 
 **Database & Authentication**
-```env
+\`\`\`env
 DATABASE_URL="postgresql://user:pass@localhost:5432/xmenity"
 JWT_SECRET="your-secure-jwt-secret"
 NEXTAUTH_SECRET="your-nextauth-secret"
-```
+\`\`\`
 
 **Blockchain & Web3**
-```env
+\`\`\`env
 THIRDWEB_CLIENT_ID="your-thirdweb-client-id"
 FACTORY_CONTRACT_ADDRESS="0x..."
 ARBITRUM_RPC_URL="https://arb1.arbitrum.io/rpc"
 PRIVATE_KEY="your-deployment-private-key"
-```
+\`\`\`
 
 **Firebase Integration**
-```env
+\`\`\`env
 FIREBASE_PROJECT_ID="your-firebase-project"
 FIREBASE_CLIENT_EMAIL="service-account@project.iam.gserviceaccount.com"
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
-```
+\`\`\`
 
 **Social Media APIs**
-```env
+\`\`\`env
 TWITTER_BEARER_TOKEN="your-twitter-v2-bearer-token"
 INSIGHTIQ_API_KEY="your-insightiq-api-key"
-```
+\`\`\`
 
 ## 🚀 Deployment
 
 ### Vercel Deployment
-```bash
+\`\`\`bash
 # Deploy to Vercel
 vercel --prod
 
 # Configure environment variables in Vercel dashboard
-```
+\`\`\`
 
 ### Docker Deployment
-```bash
+\`\`\`bash
 # Build production image
 docker build -t xmenity-app .
 
 # Run with docker-compose
 docker-compose up -d
-```
+\`\`\`
 
 ### VM Deployment
-```bash
+\`\`\`bash
 # Use the automated deployment script
 chmod +x scripts/deploy.sh
 ./scripts/deploy.sh
-```
+\`\`\`
 
 ## 📊 Token Economics
 
@@ -191,7 +191,7 @@ chmod +x scripts/deploy.sh
 ## 🔌 API Documentation
 
 ### Authentication
-```javascript
+\`\`\`javascript
 // Get nonce for signing
 POST /api/auth/nonce
 {
@@ -205,10 +205,10 @@ POST /api/auth/verify
   "signature": "0x...",
   "message": "Sign-in message"
 }
-```
+\`\`\`
 
 ### Token Management
-```javascript
+\`\`\`javascript
 // Create new token
 POST /api/tokens
 Headers: { Authorization: "Bearer <jwt>" }
@@ -222,11 +222,11 @@ Headers: { Authorization: "Bearer <jwt>" }
 
 // Get tokens with pagination
 GET /api/tokens?page=1&limit=10&search=creator
-```
+\`\`\`
 
 ## 🧪 Testing
 
-```bash
+\`\`\`bash
 # Run tests
 npm test
 
@@ -235,7 +235,7 @@ npm run test:coverage
 
 # Watch mode
 npm run test:watch
-```
+\`\`\`
 
 ## 📈 Monitoring & Analytics
 
