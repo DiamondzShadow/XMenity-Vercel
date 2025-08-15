@@ -1,4 +1,4 @@
-import { FirebaseUtils } from './firebase';
+import { FirebaseServerUtils } from './firebase.server';
 
 export interface InsightIQUser {
   id: string;
@@ -183,8 +183,8 @@ class InsightIQService {
         }),
       });
 
-      // Track in Firebase for backup
-      await FirebaseUtils.trackEvent('token_minted', {
+      // Track in Firebase for backup using server utils
+      await FirebaseServerUtils.trackEvent('token_minted', {
         tokenId: tokenData.id,
         userId: userMetrics.id,
         mintAmount,

@@ -6,7 +6,8 @@ const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const { PrismaClient } = require('@prisma/client');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+const { verifyMessage } = require('viem');
 require('dotenv').config();
 
 // Initialize Prisma Client
@@ -110,8 +111,8 @@ app.post('/api/auth/nonce', async (req, res) => {
       return res.status(400).json({ error: 'Wallet address is required' });
     }
 
-    // Generate a random nonce
-    const nonce = Math.floor(Math.random() * 1000000).toString();
+    // Generate a cryptographically secure nonce
+    const nonce = crypto.randomBytes(32).toString('hex');
 
     // Update or create user with nonce
     const user = await prisma.user.upsert({
@@ -138,15 +139,36 @@ app.post('/api/auth/verify', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Verify the signature (implement SIWE verification)
-    // This is a simplified version - implement proper SIWE verification
+    // Get user and verify nonce exists
     const user = await prisma.user.findUnique({
       where: { walletAddress: walletAddress.toLowerCase() },
     });
 
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+    if (!user || !user.nonce) {
+      return res.status(404).json({ error: 'User not found or nonce expired' });
     }
+
+    // Verify the signature using SIWE
+    try {
+      const isValid = await verifyMessage({
+        address: walletAddress,
+        message,
+        signature,
+      });
+
+      if (!isValid) {
+        return res.status(401).json({ error: 'Invalid signature' });
+      }
+    } catch (verificationError) {
+      console.error('Signature verification failed:', verificationError);
+      return res.status(401).json({ error: 'Signature verification failed' });
+    }
+
+    // Clear the nonce after successful verification
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { nonce: null },
+    });
 
     // Generate JWT token
     const token = jwt.sign(

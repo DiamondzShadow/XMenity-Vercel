@@ -4,13 +4,28 @@ import jwt from "jsonwebtoken"
 
 const prisma = new PrismaClient()
 
+// Custom error classes
+class AuthenticationError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'AuthenticationError'
+  }
+}
+
+class ValidationError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'ValidationError'
+  }
+}
+
 // Helper function to verify JWT token
 async function verifyToken(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
   const token = authHeader?.split(' ')[1]
 
   if (!token) {
-    throw new Error('Access token required')
+    throw new AuthenticationError('Access token required')
   }
 
   try {
@@ -26,12 +41,15 @@ async function verifyToken(request: NextRequest) {
     })
 
     if (!user || !user.isActive) {
-      throw new Error('User not found or inactive')
+      throw new AuthenticationError('User not found or inactive')
     }
 
     return user
   } catch (error) {
-    throw new Error('Invalid token')
+    if (error instanceof AuthenticationError) {
+      throw error
+    }
+    throw new AuthenticationError('Invalid token')
   }
 }
 
@@ -109,7 +127,7 @@ export async function POST(request: NextRequest) {
     } = body
 
     if (!name || !symbol || !contractAddress) {
-      return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 })
+      throw new ValidationError("Missing required fields: name, symbol, or contractAddress")
     }
 
     const token = await prisma.token.create({
@@ -143,8 +161,12 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Failed to create token:", error)
     
-    if (error instanceof Error && error.message.includes('token')) {
+    if (error instanceof AuthenticationError) {
       return NextResponse.json({ success: false, error: error.message }, { status: 401 })
+    }
+    
+    if (error instanceof ValidationError) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 400 })
     }
     
     return NextResponse.json({ success: false, error: "Failed to create token" }, { status: 500 })
