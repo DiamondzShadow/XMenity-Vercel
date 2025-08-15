@@ -1,35 +1,3 @@
-import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
-import { getStorage, FirebaseStorage } from 'firebase/storage';
-import { getDatabase, Database } from 'firebase/database';
-
-// Firebase configuration for diamond-zminter project
-const firebaseConfig = {
-  projectId: process.env.FIREBASE_PROJECT_ID || 'diamond-zminter',
-  databaseURL: process.env.FIREBASE_DATABASE_URL || 'https://diamond-zminter-default-rtdb.firebaseio.com',
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET || 'diamond-zminter.firebasestorage.app',
-  // Add other config values as needed
-  apiKey: process.env.FIREBASE_API_KEY,
-  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
-  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.FIREBASE_APP_ID,
-};
-
-// Initialize Firebase
-let app: FirebaseApp;
-if (getApps().length === 0) {
-  app = initializeApp(firebaseConfig);
-} else {
-  app = getApps()[0];
-}
-
-// Initialize Firebase services
-export const auth: Auth = getAuth(app);
-export const db: Firestore = getFirestore(app);
-export const storage: FirebaseStorage = getStorage(app);
-export const rtdb: Database = getDatabase(app);
-
 // Firebase Admin SDK for server-side operations
 import { initializeApp as initializeAdminApp, getApps as getAdminApps, cert } from 'firebase-admin/app';
 import { getAuth as getAdminAuth } from 'firebase-admin/auth';
@@ -65,8 +33,8 @@ export const adminDb = typeof window === 'undefined' && adminApp ? getAdminFires
 export const adminStorage = typeof window === 'undefined' && adminApp ? getAdminStorage(adminApp) : null;
 export const adminRtdb = typeof window === 'undefined' && adminApp ? getAdminDatabase(adminApp) : null;
 
-// Firebase utility functions
-export const FirebaseUtils = {
+// Server-side Firebase utility functions
+export const FirebaseServerUtils = {
   // User management utilities
   async createUserProfile(userId: string, userData: any) {
     if (!adminDb) throw new Error('Admin DB not initialized');
@@ -195,46 +163,25 @@ export const FirebaseUtils = {
     }
   },
 
-  // File upload utilities
-  async uploadFile(file: File, path: string): Promise<string> {
+  // Server-side file upload utilities (using buffers, not File API)
+  async uploadFileFromBuffer(buffer: Buffer, path: string, contentType: string): Promise<string> {
     if (!adminStorage) throw new Error('Admin Storage not initialized');
     
     try {
       const bucket = adminStorage.bucket();
-      const fileRef = bucket.file(path);
+      const file = bucket.file(path);
       
-      const stream = fileRef.createWriteStream({
+      await file.save(buffer, {
         metadata: {
-          contentType: file.type,
+          contentType,
         },
       });
-
-      return new Promise((resolve, reject) => {
-        stream.on('error', reject);
-        stream.on('finish', async () => {
-          try {
-            await fileRef.makePublic();
-            const publicUrl = `https://storage.googleapis.com/${bucket.name}/${path}`;
-            resolve(publicUrl);
-          } catch (error) {
-            reject(error);
-          }
-        });
-        
-        const reader = file.stream().getReader();
-        const pump = async () => {
-          const { done, value } = await reader.read();
-          if (done) {
-            stream.end();
-          } else {
-            stream.write(value);
-            pump();
-          }
-        };
-        pump();
-      });
+      
+      await file.makePublic();
+      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${path}`;
+      return publicUrl;
     } catch (error) {
-      console.error('Error uploading file:', error);
+      console.error('Error uploading file from buffer:', error);
       throw error;
     }
   },
@@ -257,25 +204,4 @@ export const FirebaseUtils = {
       throw error;
     }
   },
-};
-
-// Firebase hooks for React components
-export const useFirebaseAuth = () => {
-  if (typeof window === 'undefined') return null;
-  return auth;
-};
-
-export const useFirebaseDb = () => {
-  if (typeof window === 'undefined') return null;
-  return db;
-};
-
-export const useFirebaseStorage = () => {
-  if (typeof window === 'undefined') return null;
-  return storage;
-};
-
-export const useFirebaseRtdb = () => {
-  if (typeof window === 'undefined') return null;
-  return rtdb;
 };
