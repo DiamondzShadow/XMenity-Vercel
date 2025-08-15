@@ -289,16 +289,37 @@ export interface InsightIQConfig {
 }
 
 // API Error Types
-export interface APIError {
-  message: string;
-  status: number;
-  details?: any;
+export class APIError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public details?: any
+  ) {
+    super(message);
+    this.name = 'APIError';
+  }
+}
+
+// Additional custom error types for better error handling
+export class AnalysisFailedError extends APIError {
+  constructor(jobId: string, details?: any) {
+    super(`Analysis failed for job ${jobId}`, 422, details);
+    this.name = 'AnalysisFailedError';
+  }
+}
+
+export class AnalysisTimeoutError extends APIError {
+  constructor(jobId: string, timeout: number, details?: any) {
+    super(`Analysis timeout for job ${jobId} after ${timeout}ms`, 408, details);
+    this.name = 'AnalysisTimeoutError';
+  }
 }
 
 // Query Parameters
 export interface PaginationParams {
   limit?: number;
   offset?: number;
+  [key: string]: string | number | boolean | undefined;
 }
 
 export interface CommentsQueryParams extends PaginationParams {

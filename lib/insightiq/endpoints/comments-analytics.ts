@@ -3,7 +3,9 @@ import {
   CommentsAnalyticsResponse,
   CommentsAnalyticsInsights,
   CommentsStreamResponse,
-  CommentsQueryParams
+  CommentsQueryParams,
+  AnalysisFailedError,
+  AnalysisTimeoutError
 } from '../types';
 
 export class CommentsAnalyticsEndpoint {
@@ -11,7 +13,7 @@ export class CommentsAnalyticsEndpoint {
     endpoint: string,
     method?: 'GET' | 'POST' | 'PUT' | 'DELETE',
     body?: any,
-    queryParams?: Record<string, string | number | boolean>
+    queryParams?: Record<string, string | number | boolean | undefined>
   ) => Promise<T>) {}
 
   /**
@@ -75,13 +77,13 @@ export class CommentsAnalyticsEndpoint {
       }
       
       if (insights.status === 'FAILURE') {
-        throw new Error(`Analysis failed for job ${id}`);
+        throw new AnalysisFailedError(id);
       }
       
       // Wait before polling again
       await new Promise(resolve => setTimeout(resolve, interval));
     }
     
-    throw new Error(`Analysis timeout for job ${id}`);
+    throw new AnalysisTimeoutError(id, timeout);
   }
 }

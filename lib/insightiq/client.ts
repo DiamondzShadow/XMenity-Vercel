@@ -43,7 +43,7 @@ export class InsightIQClient {
     endpoint: string,
     method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
     body?: any,
-    queryParams?: Record<string, string | number | boolean>
+    queryParams?: Record<string, string | number | boolean | undefined>
   ): Promise<T> {
     let url = `${this.baseUrl}${endpoint}`;
     
@@ -85,11 +85,11 @@ export class InsightIQClient {
           errorDetails = errorText;
         }
         
-        throw new Error(JSON.stringify({
-          message: `API request failed: ${response.status} ${response.statusText}`,
-          status: response.status,
-          details: errorDetails
-        } as APIError));
+        throw new APIError(
+          `API request failed: ${response.status} ${response.statusText}`,
+          response.status,
+          errorDetails
+        );
       }
 
       // Handle 204 No Content responses
@@ -100,15 +100,15 @@ export class InsightIQClient {
       const data = await response.json();
       return data as T;
     } catch (error) {
-      if (error instanceof Error && error.message.startsWith('{')) {
+      if (error instanceof APIError) {
         throw error; // Re-throw API errors as-is
       }
       
-      throw new Error(JSON.stringify({
-        message: `Network error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        status: 0,
-        details: error
-      } as APIError));
+      throw new APIError(
+        `Network error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        0,
+        error
+      );
     }
   }
 
@@ -137,7 +137,7 @@ export class InsightIQClient {
     endpoint: string,
     method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
     body?: any,
-    queryParams?: Record<string, string | number | boolean>
+    queryParams?: Record<string, string | number | boolean | undefined>
   ): Promise<T> {
     return this.makeRequest<T>(endpoint, method, body, queryParams);
   }
