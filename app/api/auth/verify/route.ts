@@ -1,66 +1,103 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createServerSupabaseClient } from "@/lib/supabase"
-import { verifyMessage } from "viem"
-import jwt from "jsonwebtoken"
+import { insightiq } from "@/lib/insightiq"
+import { firebaseOperations } from "@/lib/firebase"
 
 export async function POST(request: NextRequest) {
   try {
-    const { walletAddress, signature, message } = await request.json()
+    const body = await request.json()
+    const { username, walletAddress, signature, message } = body
 
-    if (!walletAddress || !signature || !message) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    // Validate required fields
+    if (!username || !walletAddress) {
+      return NextResponse.json(
+        { success: false, error: "Username and wallet address are required" },
+        { status: 400 }
+      )
     }
 
-    const supabase = createServerSupabaseClient()
-
-    // Get user and nonce from database
-    const { data: user, error: userError } = await supabase
-      .from("users")
-      .select("*")
-      .eq("wallet_address", walletAddress.toLowerCase())
-      .single()
-
-    if (userError || !user) {
-      return NextResponse.json({ error: "User not found or nonce expired" }, { status: 404 })
-    }
-
-    // Verify the signature
-    const isValid = await verifyMessage({
-      address: walletAddress as `0x${string}`,
-      message,
-      signature: signature as `0x${string}`,
-    })
-
-    if (!isValid) {
-      return NextResponse.json({ error: "Invalid signature" }, { status: 401 })
+    // Verify creator with InsightIQ
+    const creatorData = await insightiq.verifyCreator(username, walletAddress)
+    
+    // Check eligibility for token creation
+    const eligibility = await insightiq.isEligibleForTokenLaunch(username)
+    
+    if (!eligibility.eligible) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: eligibility.reason,
+          requirements: eligibility.requirements,
+          currentMetrics: eligibility.currentMetrics
+        },
+        { status: 403 }
+      )
     }
 
     // Generate JWT token
-    const token = jwt.sign(
-      {
-        userId: user.id,
-        walletAddress: user.wallet_address,
-      },
-      process.env.JWT_SECRET || "fallback-secret",
-      { expiresIn: "7d" },
-    )
+    const jwtToken = insightiq.generateJWT(creatorData)
 
-    // Update user's last login
-    await supabase.from("users").update({ updated_at: new Date().toISOString() }).eq("id", user.id)
+    // Store or update creator data in Firebase
+    const creatorId = `${username}_${walletAddress.slice(0, 6)}`
+    await firebaseOperations.collection('creators').doc(creatorId).set({
+      username,
+      walletAddress,
+      verificationLevel: creatorData.verification_level,
+      metrics: creatorData.metrics,
+      milestones: creatorData.milestones,
+      verifiedAt: creatorData.verified_at,
+      lastUpdated: new Date().toISOString(),
+    })
 
     return NextResponse.json({
-      token,
-      user: {
-        id: user.id,
-        walletAddress: user.wallet_address,
-        displayName: user.display_name,
-        isVerified: user.is_verified,
-        twitterUsername: user.twitter_username,
-        profileImage: user.profile_image,
-      },
+      success: true,
+      token: jwtToken,
+      creator: creatorData,
+      eligibility,
     })
   } catch (error) {
-    console.error("Verification error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.error("Creator verification failed:", error)
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: error instanceof Error ? error.message : "Verification failed" 
+      },
+      { status: 500 }
+    )
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const token = searchParams.get("token")
+
+    if (!token) {
+      return NextResponse.json(
+        { success: false, error: "Token is required" },
+        { status: 400 }
+      )
+    }
+
+    // Verify JWT token
+    const payload = insightiq.verifyJWT(token)
+    
+    if (!payload) {
+      return NextResponse.json(
+        { success: false, error: "Invalid or expired token" },
+        { status: 401 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      payload,
+      valid: true,
+    })
+  } catch (error) {
+    console.error("Token verification failed:", error)
+    return NextResponse.json(
+      { success: false, error: "Token verification failed" },
+      { status: 500 }
+    )
   }
 }

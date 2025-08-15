@@ -53,11 +53,25 @@ try {
 
 export { client }
 
-// Chain configuration
-export const chain = arbitrum
+// Updated Chain configuration for custom Arbitrum
+export const chain = {
+  id: 150179125,
+  name: "Custom Arbitrum",
+  network: "arbitrum-custom",
+  nativeCurrency: {
+    decimals: 18,
+    name: "Ether",
+    symbol: "ETH",
+  },
+  rpcUrls: {
+    public: { http: [process.env.NEXT_PUBLIC_CUSTOM_ARB_RPC_URL || ""] },
+    default: { http: [process.env.NEXT_PUBLIC_CUSTOM_ARB_RPC_URL || ""] },
+  },
+}
 
-// Modular Token Factory Contract Address on Arbitrum One
-export const MODULAR_TOKEN_FACTORY_ADDRESS = "0xEA3126464a541ff082F184Ca6cd7CE3aeF50c7b7"
+// Updated contract addresses from deployment
+export const TOKEN_FACTORY_ADDRESS = "0x477B1D346a477FD3190da45c29F226f33D09Dc93"
+export const SAMPLE_TOKEN_ADDRESS = "0x7f2BFF3ecF09B430f01271A892b1dB4C533F568E"
 
 // Factory contract configuration - only if client is available
 export const getFactoryContract = () => {
@@ -68,18 +82,18 @@ export const getFactoryContract = () => {
   return getContract({
     client,
     chain,
-    address: MODULAR_TOKEN_FACTORY_ADDRESS,
+    address: TOKEN_FACTORY_ADDRESS,
   })
 }
 
-// Contract ABIs for Modular Token Factory
-export const MODULAR_TOKEN_FACTORY_ABI = [
-  "function deployModularToken(string memory name, string memory symbol, uint256 initialSupply, string[] memory metrics, uint256[] memory thresholds, uint256[] memory weights, address creator, bytes memory creatorData) returns (address)",
+// Updated Contract ABIs for TokenFactory and ModularToken
+export const TOKEN_FACTORY_ABI = [
+  "function deployToken(string memory name, string memory symbol, uint256 initialSupply, string[] memory metricNames, uint256[] memory thresholds, uint256[] memory multipliers, address creator, string memory creatorData) returns (address)",
   "function getTokensByCreator(address creator) view returns (address[])",
-  "function tokenCount() view returns (uint256)",
-  "function tokens(uint256 index) view returns (address)",
+  "function getAllTokens() view returns (address[])",
   "function isValidToken(address token) view returns (bool)",
-  "event ModularTokenDeployed(address indexed tokenAddress, address indexed creator, string name, string symbol, uint256 initialSupply)",
+  "function owner() view returns (address)",
+  "event TokenDeployed(address indexed tokenAddress, address indexed creator, string name, string symbol)",
 ]
 
 export const MODULAR_TOKEN_ABI = [
@@ -95,14 +109,42 @@ export const MODULAR_TOKEN_ABI = [
   "function mint(address to, uint256 amount) returns (bool)",
   "function burn(uint256 amount) returns (bool)",
   "function creator() view returns (address)",
-  "function getMetrics() view returns (string[] memory, uint256[] memory, uint256[] memory)",
-  "function updateMetricValue(string memory metric, uint256 value) returns (bool)",
-  "function claimReward() returns (bool)",
+  "function getMetricConfig() view returns (string[] memory, uint256[] memory, uint256[] memory)",
+  "function updateMetrics(string[] memory names, uint256[] memory values) returns (bool)",
+  "function claimRewards() returns (uint256)",
+  "function getCreatorData() view returns (string memory)",
   "event Transfer(address indexed from, address indexed to, uint256 value)",
   "event Approval(address indexed owner, address indexed spender, uint256 value)",
-  "event MetricUpdated(string metric, uint256 oldValue, uint256 newValue)",
-  "event RewardClaimed(address indexed creator, uint256 amount)",
+  "event MetricsUpdated(string[] names, uint256[] values)",
+  "event RewardsClaimed(address indexed creator, uint256 amount)",
 ]
+
+// TypeScript interfaces for contract interactions
+export interface MetricConfig {
+  name: string;
+  thresholds: number[];
+  multipliers: number[];
+}
+
+export interface CreatorMetrics {
+  followers: number;
+  engagement_rate: number;
+  reach: number;
+  influence_score: number;
+  authenticity_score: number;
+  growth_rate: number;
+}
+
+export interface TokenDeploymentParams {
+  name: string;
+  symbol: string;
+  initialSupply: bigint;
+  metricNames: string[];
+  thresholds: number[];
+  multipliers: number[];
+  creator: string;
+  creatorData: string;
+}
 
 // Web3 utility functions
 export const Web3Utils = {
@@ -119,33 +161,33 @@ export const Web3Utils = {
     return await provider.getSigner()
   },
 
-  // Contract interactions
-  async deployModularToken(tokenData: {
+  // Updated contract interactions for new TokenFactory
+  async deployToken(tokenData: {
     name: string
     symbol: string
     initialSupply: string
-    metrics: string[]
+    metricNames: string[]
     thresholds: number[]
-    weights: number[]
+    multipliers: number[]
     creator: string
     creatorData: any
   }): Promise<{ contractAddress: string; transactionHash: string }> {
     try {
       const signer = await this.getSigner()
-      const factory = new ethers.Contract(MODULAR_TOKEN_FACTORY_ADDRESS, MODULAR_TOKEN_FACTORY_ABI, signer)
+      const factory = new ethers.Contract(TOKEN_FACTORY_ADDRESS, TOKEN_FACTORY_ABI, signer)
 
       const initialSupplyWei = ethers.parseEther(tokenData.initialSupply)
-      const creatorDataBytes = ethers.toUtf8Bytes(JSON.stringify(tokenData.creatorData))
+      const creatorDataString = JSON.stringify(tokenData.creatorData)
 
-      const tx = await factory.deployModularToken(
+      const tx = await factory.deployToken(
         tokenData.name,
         tokenData.symbol,
         initialSupplyWei,
-        tokenData.metrics,
+        tokenData.metricNames,
         tokenData.thresholds,
-        tokenData.weights,
+        tokenData.multipliers,
         tokenData.creator,
-        creatorDataBytes,
+        creatorDataString,
       )
 
       const receipt = await tx.wait()
@@ -154,7 +196,7 @@ export const Web3Utils = {
       const event = receipt.logs.find((log: any) => {
         try {
           const parsed = factory.interface.parseLog(log)
-          return parsed?.name === "ModularTokenDeployed"
+          return parsed?.name === "TokenDeployed"
         } catch {
           return false
         }
@@ -182,13 +224,14 @@ export const Web3Utils = {
       const provider = this.getProvider()
       const token = new ethers.Contract(contractAddress, MODULAR_TOKEN_ABI, provider)
 
-      const [name, symbol, decimals, totalSupply, creator, metrics] = await Promise.all([
+      const [name, symbol, decimals, totalSupply, creator, metricConfig, creatorData] = await Promise.all([
         token.name(),
         token.symbol(),
         token.decimals(),
         token.totalSupply(),
         token.creator(),
-        token.getMetrics(),
+        token.getMetricConfig(),
+        token.getCreatorData(),
       ])
 
       return {
@@ -198,10 +241,11 @@ export const Web3Utils = {
         totalSupply: ethers.formatEther(totalSupply),
         creator,
         contractAddress,
+        creatorData: JSON.parse(creatorData),
         metrics: {
-          names: metrics[0],
-          thresholds: metrics[1].map((t: any) => Number(t)),
-          weights: metrics[2].map((w: any) => Number(w)),
+          names: metricConfig[0],
+          thresholds: metricConfig[1].map((t: any) => Number(t)),
+          multipliers: metricConfig[2].map((m: any) => Number(m)),
         },
       }
     } catch (error) {
@@ -222,33 +266,86 @@ export const Web3Utils = {
     }
   },
 
-  async updateMetricValue(contractAddress: string, metric: string, value: number): Promise<string> {
+  async updateMetrics(contractAddress: string, names: string[], values: number[]): Promise<string> {
     try {
       const signer = await this.getSigner()
       const token = new ethers.Contract(contractAddress, MODULAR_TOKEN_ABI, signer)
 
-      const tx = await token.updateMetricValue(metric, value)
+      const tx = await token.updateMetrics(names, values)
       const receipt = await tx.wait()
 
       return receipt.hash
     } catch (error) {
-      console.error("Update metric error:", error)
-      throw new Error("Failed to update metric value")
+      console.error("Update metrics error:", error)
+      throw new Error("Failed to update metrics")
     }
   },
 
-  async claimReward(contractAddress: string): Promise<string> {
+  async claimRewards(contractAddress: string): Promise<{ amount: string; transactionHash: string }> {
     try {
       const signer = await this.getSigner()
       const token = new ethers.Contract(contractAddress, MODULAR_TOKEN_ABI, signer)
 
-      const tx = await token.claimReward()
+      const tx = await token.claimRewards()
       const receipt = await tx.wait()
 
-      return receipt.hash
+      // Get the reward amount from the event logs
+      const event = receipt.logs.find((log: any) => {
+        try {
+          const parsed = token.interface.parseLog(log)
+          return parsed?.name === "RewardsClaimed"
+        } catch {
+          return false
+        }
+      })
+
+      let amount = "0"
+      if (event) {
+        const parsedEvent = token.interface.parseLog(event)
+        amount = ethers.formatEther(parsedEvent?.args[1] || 0)
+      }
+
+      return {
+        amount,
+        transactionHash: receipt.hash,
+      }
     } catch (error) {
-      console.error("Claim reward error:", error)
-      throw new Error("Failed to claim reward")
+      console.error("Claim rewards error:", error)
+      throw new Error("Failed to claim rewards")
+    }
+  },
+
+  // Factory contract interactions
+  async getTokensByCreator(creator: string): Promise<string[]> {
+    try {
+      const provider = this.getProvider()
+      const factory = new ethers.Contract(TOKEN_FACTORY_ADDRESS, TOKEN_FACTORY_ABI, provider)
+      return await factory.getTokensByCreator(creator)
+    } catch (error) {
+      console.error("Get tokens by creator error:", error)
+      throw new Error("Failed to get tokens by creator")
+    }
+  },
+
+  async getAllTokens(): Promise<string[]> {
+    try {
+      const provider = this.getProvider()
+      const factory = new ethers.Contract(TOKEN_FACTORY_ADDRESS, TOKEN_FACTORY_ABI, provider)
+      return await factory.getAllTokens()
+    } catch (error) {
+      console.error("Get all tokens error:", error)
+      throw new Error("Failed to get all tokens")
+    }
+  },
+
+  async isValidToken(tokenAddress: string): Promise<boolean> {
+    try {
+      const provider = this.getProvider()
+      const factory = new ethers.Contract(TOKEN_FACTORY_ADDRESS, TOKEN_FACTORY_ABI, provider)
+      return await factory.isValidToken(tokenAddress)
+    } catch (error) {
+      console.error("Validate token error:", error)
+      return false
     }
   },
 }
