@@ -1,16 +1,29 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { rateLimit } from '@/lib/auth';
+
+// Create rate limiter instance
+const apiRateLimiter = rateLimit();
 
 export function middleware(request: NextRequest) {
   // Handle CORS for API routes
   if (request.nextUrl.pathname.startsWith('/api/')) {
+    // Apply rate limiting to API routes
+    if (!apiRateLimiter(request)) {
+      return new NextResponse('Too many requests', { 
+        status: 429,
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+    }
+
     const response = NextResponse.next();
 
     // CORS headers
     const origin = request.headers.get('origin');
     const allowedOrigins = [
       process.env.FRONTEND_URL || 'http://localhost:3000',
-      'http://localhost:3000',
       'http://localhost:3001'
     ];
 
