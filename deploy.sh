@@ -49,7 +49,7 @@ setup_database() {
     echo "✅ Database setup completed"
 }
 
-# Health check
+# Health check with robust polling
 health_check() {
     echo "🩺 Running health check..."
     
@@ -57,43 +57,39 @@ health_check() {
     npm start &
     APP_PID=$!
     
-    # Wait a moment for the app to start
-    sleep 5
+    # Poll the health endpoint until it succeeds or times out
+    echo "⏳ Waiting for application to start..."
+    for i in {1..30}; do
+        if node healthcheck.js; then
+            echo "✅ Health check passed"
+            kill $APP_PID 2>/dev/null || true
+            return 0
+        fi
+        echo "  Attempt $i/30 - waiting..."
+        sleep 2
+    done
     
-    # Run health check
-    if node healthcheck.js; then
-        echo "✅ Health check passed"
-        kill $APP_PID
-        return 0
-    else
-        echo "❌ Health check failed"
-        kill $APP_PID
-        exit 1
-    fi
+    echo "❌ Health check failed: Application did not respond in time."
+    kill $APP_PID 2>/dev/null || true
+    exit 1
 }
 
 # Platform-specific deployment
 deploy_netlify() {
     echo "🌐 Deploying to Netlify..."
     
-    if ! command -v netlify &> /dev/null; then
-        echo "Installing Netlify CLI..."
-        npm install -g netlify-cli
-    fi
-    
-    netlify deploy --prod --dir=.next
+    # Use npx to avoid global installation issues
+    echo "📦 Using Netlify CLI via npx..."
+    npx netlify-cli deploy --prod --dir=.next
     echo "✅ Deployed to Netlify successfully"
 }
 
 deploy_railway() {
     echo "🚂 Deploying to Railway..."
     
-    if ! command -v railway &> /dev/null; then
-        echo "Installing Railway CLI..."
-        npm install -g @railway/cli
-    fi
-    
-    railway up
+    # Use npx to avoid global installation issues
+    echo "📦 Using Railway CLI via npx..."
+    npx @railway/cli up
     echo "✅ Deployed to Railway successfully"
 }
 

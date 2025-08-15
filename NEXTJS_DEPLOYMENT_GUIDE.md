@@ -113,24 +113,42 @@ firebase deploy
 ```json
 {
   "hosting": {
-    "public": "out",
+    "public": ".next/standalone/public",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
       {
-        "source": "/api/**",
-        "function": "nextjsFunc"
-      },
-      {
         "source": "**",
-        "destination": "/index.html"
+        "function": "nextjsFunc"
       }
     ]
   },
   "functions": {
+    "source": "functions",
     "runtime": "nodejs18"
   }
 }
 ```
+
+#### Firebase Functions Setup (`functions/index.js`)
+```javascript
+const { onRequest } = require('firebase-functions/v2/https');
+const next = require('next');
+
+const nextjsDistDir = require('path').join(__dirname, '../.next');
+
+const nextjsServer = next({
+  dev: false,
+  dir: __dirname,
+  distDir: nextjsDistDir,
+});
+const nextjsHandle = nextjsServer.getRequestHandler();
+
+exports.nextjsFunc = onRequest(async (req, res) => {
+  return nextjsServer.prepare().then(() => nextjsHandle(req, res));
+});
+```
+
+**Note**: For `output: 'standalone'` mode, Firebase deployment requires additional setup. Consider using Vercel or Railway for easier deployment with standalone output.
 
 ### 5. 🐳 Docker Deployment (Self-Hosted)
 **Best for**: Full control and custom infrastructure

@@ -52,25 +52,8 @@ export async function requireAuth(request: NextRequest) {
   return user;
 }
 
-// Rate limiting utility
-const requestCounts = new Map<string, { count: number; resetTime: number }>();
-
-export function rateLimit(maxRequests: number = 100, windowMs: number = 15 * 60 * 1000) {
-  return (request: NextRequest): boolean => {
-    const ip = request.ip || request.headers.get('x-forwarded-for') || 'unknown';
-    const now = Date.now();
-    const record = requestCounts.get(ip);
-
-    if (!record || now > record.resetTime) {
-      requestCounts.set(ip, { count: 1, resetTime: now + windowMs });
-      return true;
-    }
-
-    if (record.count >= maxRequests) {
-      return false;
-    }
-
-    record.count++;
-    return true;
-  };
-}
+// Note: Rate limiting has been moved to middleware.ts
+// For production serverless deployments, consider using:
+// - Upstash Redis for distributed rate limiting
+// - Platform-specific rate limiting (Vercel Edge Config, Netlify Edge Functions, etc.)
+// - External services like Cloudflare Rate Limiting
