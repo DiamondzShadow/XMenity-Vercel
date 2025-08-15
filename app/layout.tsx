@@ -1,15 +1,28 @@
-import type { Metadata } from "next";
-import "./globals.css";
-import "@rainbow-me/rainbowkit/styles.css";
-import { Providers } from "./providers";
-import { Toaster } from "sonner";
+import type React from "react"
+import type { Metadata } from "next"
+import localFont from "next/font/local"
+import "./globals.css"
+import { Providers } from "./providers"
+import { Toaster } from "sonner"
+
+const geistSans = localFont({
+  src: "./fonts/GeistVF.woff2",
+  variable: "--font-geist-sans",
+  weight: "100 900",
+})
+const geistMono = localFont({
+  src: "./fonts/GeistMonoVF.woff2",
+  variable: "--font-geist-mono",
+  weight: "100 900",
+})
 
 export const metadata: Metadata = {
   title: {
     default: "XMenity Social Token Factory",
-    template: "%s | XMenity"
+    template: "%s | XMenity",
   },
-  description: "A comprehensive platform for X (Twitter) creators to launch their own community tokens on Arbitrum, powered by InsightIQ verification and milestone-based tokenomics.",
+  description:
+    "A comprehensive platform for X (Twitter) creators to launch their own community tokens on Arbitrum, powered by InsightIQ verification and milestone-based tokenomics.",
   keywords: [
     "social tokens",
     "web3",
@@ -19,13 +32,13 @@ export const metadata: Metadata = {
     "thirdweb",
     "creators",
     "tokenomics",
-    "cryptocurrency"
+    "cryptocurrency",
   ],
   authors: [
     {
       name: "DiamondzShadow",
-      url: "https://github.com/DiamondzShadow"
-    }
+      url: "https://github.com/DiamondzShadow",
+    },
   ],
   creator: "DiamondzShadow",
   publisher: "XMenity",
@@ -42,16 +55,16 @@ export const metadata: Metadata = {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "XMenity Social Token Factory"
-      }
-    ]
+        alt: "XMenity Social Token Factory",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "XMenity Social Token Factory",
     description: "Launch your own community tokens on Arbitrum with milestone-based tokenomics",
     images: ["/og-image.jpg"],
-    creator: "@XMenityTube"
+    creator: "@XMenityTube",
   },
   robots: {
     index: true,
@@ -61,8 +74,8 @@ export const metadata: Metadata = {
       follow: true,
       "max-video-preview": -1,
       "max-image-preview": "large",
-      "max-snippet": -1
-    }
+      "max-snippet": -1,
+    },
   },
   verification: {
     google: process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION_ID,
@@ -74,33 +87,33 @@ export const metadata: Metadata = {
     icon: [
       {
         url: "/favicon.ico",
-        sizes: "any"
+        sizes: "any",
       },
       {
         url: "/icon-16x16.png",
         sizes: "16x16",
-        type: "image/png"
+        type: "image/png",
       },
       {
         url: "/icon-32x32.png",
         sizes: "32x32",
-        type: "image/png"
-      }
+        type: "image/png",
+      },
     ],
     apple: [
       {
         url: "/apple-touch-icon.png",
-        sizes: "180x180"
-      }
-    ]
+        sizes: "180x180",
+      },
+    ],
   },
-    generator: 'v0.dev'
-};
+    generator: 'v0.app'
+}
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -126,26 +139,26 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="antialiased min-h-screen bg-background text-foreground">
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background text-foreground`}
+      >
         <Providers>
           <div className="relative flex min-h-screen flex-col">
-            <div className="flex-1">
-              {children}
-            </div>
+            <div className="flex-1">{children}</div>
           </div>
           <Toaster
             position="top-right"
             toastOptions={{
               duration: 4000,
               style: {
-                background: 'hsl(var(--background))',
-                color: 'hsl(var(--foreground))',
-                border: '1px solid hsl(var(--border))',
+                background: "hsl(var(--background))",
+                color: "hsl(var(--foreground))",
+                border: "1px solid hsl(var(--border))",
               },
             }}
           />
         </Providers>
       </body>
     </html>
-  );
+  )
 }

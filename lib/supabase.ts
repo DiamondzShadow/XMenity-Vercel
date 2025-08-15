@@ -16,9 +16,6 @@ export const createServerSupabaseClient = () => {
   })
 }
 
-// Alias for backwards compatibility
-export const createServerComponentClient = createServerSupabaseClient
-
 // Supabase utility functions
 export const SupabaseUtils = {
   // User management utilities

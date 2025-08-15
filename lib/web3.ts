@@ -30,8 +30,8 @@ export function formatPrice(price: string | number): string {
   return `$${num.toFixed(2)}`
 }
 
-export const parseTokenAmount = (amount: string, decimals = 18): ethers.BigNumber => {
-  return ethers.utils.parseUnits(amount, decimals)
+export const parseTokenAmount = (amount: string, decimals = 18): bigint => {
+  return ethers.parseUnits(amount, decimals)
 }
 
 // Thirdweb client configuration with fallback
@@ -107,16 +107,16 @@ export const MODULAR_TOKEN_ABI = [
 // Web3 utility functions
 export const Web3Utils = {
   // Provider setup
-  getProvider(): ethers.providers.Web3Provider {
+  getProvider(): ethers.BrowserProvider {
     if (typeof window === "undefined" || !window.ethereum) {
       throw new Error("Ethereum provider not found. Please install MetaMask or another Web3 wallet.")
     }
-    return new ethers.providers.Web3Provider(window.ethereum)
+    return new ethers.BrowserProvider(window.ethereum)
   },
 
-  async getSigner(): Promise<ethers.providers.JsonRpcSigner> {
+  async getSigner(): Promise<ethers.JsonRpcSigner> {
     const provider = this.getProvider()
-    return provider.getSigner()
+    return await provider.getSigner()
   },
 
   // Contract interactions
@@ -134,8 +134,8 @@ export const Web3Utils = {
       const signer = await this.getSigner()
       const factory = new ethers.Contract(MODULAR_TOKEN_FACTORY_ADDRESS, MODULAR_TOKEN_FACTORY_ABI, signer)
 
-      const initialSupplyWei = ethers.utils.parseEther(tokenData.initialSupply)
-      const creatorDataBytes = ethers.utils.toUtf8Bytes(JSON.stringify(tokenData.creatorData))
+      const initialSupplyWei = ethers.parseEther(tokenData.initialSupply)
+      const creatorDataBytes = ethers.toUtf8Bytes(JSON.stringify(tokenData.creatorData))
 
       const tx = await factory.deployModularToken(
         tokenData.name,
@@ -195,7 +195,7 @@ export const Web3Utils = {
         name,
         symbol,
         decimals: Number(decimals),
-        totalSupply: ethers.utils.formatEther(totalSupply),
+        totalSupply: ethers.formatEther(totalSupply),
         creator,
         contractAddress,
         metrics: {
@@ -215,7 +215,7 @@ export const Web3Utils = {
       const provider = this.getProvider()
       const token = new ethers.Contract(contractAddress, MODULAR_TOKEN_ABI, provider)
       const balance = await token.balanceOf(userAddress)
-      return ethers.utils.formatEther(balance)
+      return ethers.formatEther(balance)
     } catch (error) {
       console.error("Get token balance error:", error)
       throw new Error("Failed to get token balance")

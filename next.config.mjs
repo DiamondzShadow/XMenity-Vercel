@@ -75,7 +75,7 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline' blob:; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: wss:;",
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: wss:;",
           },
         ],
       },
@@ -90,15 +90,15 @@ const nextConfig = {
         fs: false,
         net: false,
         tls: false,
-        crypto: false,
-        stream: false,
-        url: false,
-        zlib: false,
-        http: false,
-        https: false,
-        assert: false,
-        os: false,
-        path: false,
+        crypto: require.resolve('crypto-browserify'),
+        stream: require.resolve('stream-browserify'),
+        url: require.resolve('url'),
+        zlib: require.resolve('browserify-zlib'),
+        http: require.resolve('stream-http'),
+        https: require.resolve('https-browserify'),
+        assert: require.resolve('assert'),
+        os: require.resolve('os-browserify'),
+        path: require.resolve('path-browserify'),
       };
     }
 
@@ -116,7 +116,6 @@ const nextConfig = {
     'thirdweb',
     '@thirdweb-dev/sdk',
     '@thirdweb-dev/chains',
-    '@rainbow-me/rainbowkit',
   ],
 
   // Compiler options
