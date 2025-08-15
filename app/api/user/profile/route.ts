@@ -1,92 +1,78 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createServerComponentClient } from "@/lib/supabase"
+import { PrismaClient } from "@prisma/client"
+import { requireAuth } from "@/lib/auth"
+
+const prisma = new PrismaClient()
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createServerComponentClient()
+    const user = await requireAuth(request)
 
-    // Get user from session (in a real app, you'd verify the JWT token)
-    const {
-      data: { user: authUser },
-      error: authError,
-    } = await supabase.auth.getUser()
+    const userProfile = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: {
+        createdTokens: {
+          select: {
+            id: true,
+            name: true,
+            symbol: true,
+            contractAddress: true,
+            totalSupply: true,
+            holderCount: true,
+          },
+        },
+        tokenHoldings: {
+          include: {
+            token: {
+              select: {
+                name: true,
+                symbol: true,
+                logoUrl: true,
+              },
+            },
+          },
+        },
+      },
+    })
 
-    if (authError || !authUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    // Get user profile with related data
-    const { data: user, error } = await supabase
-      .from("users")
-      .select(`
-        *,
-        tokens!tokens_creator_id_fkey (
-          id,
-          name,
-          symbol,
-          contract_address,
-          total_supply,
-          holder_count
-        ),
-        token_holdings (
-          balance,
-          tokens (
-            name,
-            symbol,
-            logo_url
-          )
-        )
-      `)
-      .eq("id", authUser.id)
-      .single()
-
-    if (error) {
-      console.error("Database error:", error)
+    if (!userProfile) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    return NextResponse.json(user)
+    return NextResponse.json(userProfile)
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
     console.error("Profile fetch error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  } finally {
+    await prisma.$disconnect()
   }
 }
 
 export async function PUT(request: NextRequest) {
   try {
+    const user = await requireAuth(request)
     const { displayName, bio, profileImage } = await request.json()
-    const supabase = createServerComponentClient()
 
-    // Get user from session
-    const {
-      data: { user: authUser },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !authUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    const { data: updatedUser, error } = await supabase
-      .from("users")
-      .update({
-        display_name: displayName,
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        displayName,
         bio,
-        profile_image: profileImage,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", authUser.id)
-      .select()
-      .single()
-
-    if (error) {
-      console.error("Database error:", error)
-      return NextResponse.json({ error: "Update failed" }, { status: 500 })
-    }
+        profileImage,
+      },
+    })
 
     return NextResponse.json(updatedUser)
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
     console.error("Profile update error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  } finally {
+    await prisma.$disconnect()
   }
 }

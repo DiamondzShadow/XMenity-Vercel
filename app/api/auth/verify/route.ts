@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { PrismaClient } from "@prisma/client"
-import jwt from "jsonwebtoken"
+import * as jwt from "jsonwebtoken"
 import { verifyMessage } from "viem"
 
 const prisma = new PrismaClient()
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     const token = jwt.sign(
       { userId: user.id, walletAddress: user.walletAddress },
       process.env.JWT_SECRET!,
-      { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
+      { expiresIn: process.env.JWT_EXPIRES_IN || "7d" } as jwt.SignOptions
     )
 
     // Update last login
