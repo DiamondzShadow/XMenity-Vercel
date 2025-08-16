@@ -16,15 +16,13 @@ model User {
   walletAddress     String   @unique
   nonce             String?
   
-  // Social Media Information
-  twitterId         String?  @unique
-  twitterUsername   String?
-  twitterHandle     String?
-  twitterAvatar     String?
-  twitterFollowers  Int?     @default(0)
-  twitterVerified   Boolean  @default(false)
-  
   // InsightIQ Data
+  platform          String?  @default("twitter") // twitter, instagram, tiktok, youtube
+  platformId        String?  @unique
+  platformUsername  String?
+  platformHandle    String?
+  followers         Int?     @default(0)
+  platformVerified  Boolean  @default(false)
   insightIqId       String?  @unique
   insightIqVerified Boolean  @default(false)
   influenceScore    Float?

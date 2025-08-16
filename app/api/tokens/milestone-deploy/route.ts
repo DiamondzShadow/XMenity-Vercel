@@ -131,8 +131,8 @@ export async function POST(request: NextRequest) {
         deploymentParams.totalSupply,
         deploymentParams.initialPrice,
         deploymentParams.creatorWallet,
-        tokenomics.milestones.map(m => m.holders), // Milestone thresholds
-        tokenomics.milestones.map(m => Math.floor(m.reward * 1000)), // Reward percentages (scaled)
+        tokenomics.milestones.map((m: any) => m.holders), // Milestone thresholds
+        tokenomics.milestones.map((m: any) => Math.floor(m.reward * 1000)), // Reward percentages (scaled)
         tokenomics.rewardMultiplier
       ])
 
@@ -215,7 +215,6 @@ export async function POST(request: NextRequest) {
         followers: userProfile.followers,
         engagementRate: userProfile.engagementRate,
         influenceScore: userProfile.influenceScore,
-        verified: userProfile.verified,
         isActive: true,
         lastUpdated: new Date()
       })

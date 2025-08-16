@@ -8,12 +8,17 @@ export interface Database {
           id: string
           wallet_address: string
           display_name: string | null
-          twitter_username: string | null
-          twitter_id: string | null
+          platform: string | null
+          platform_id: string | null
+          platform_username: string | null
+          platform_handle: string | null
+          followers: number
+          platform_verified: boolean
           profile_image: string | null
-          follower_count: number
-          following_count: number
-          tweet_count: number
+          insightiq_id: string | null
+          insightiq_verified: boolean
+          influence_score: number | null
+          engagement_rate: number | null
           is_verified: boolean
           verification_status: string
           created_at: string
@@ -23,12 +28,17 @@ export interface Database {
           id: string
           wallet_address: string
           display_name?: string | null
-          twitter_username?: string | null
-          twitter_id?: string | null
+          platform?: string | null
+          platform_id?: string | null
+          platform_username?: string | null
+          platform_handle?: string | null
+          followers?: number
+          platform_verified?: boolean
           profile_image?: string | null
-          follower_count?: number
-          following_count?: number
-          tweet_count?: number
+          insightiq_id?: string | null
+          insightiq_verified?: boolean
+          influence_score?: number | null
+          engagement_rate?: number | null
           is_verified?: boolean
           verification_status?: string
           created_at?: string
@@ -38,12 +48,17 @@ export interface Database {
           id?: string
           wallet_address?: string
           display_name?: string | null
-          twitter_username?: string | null
-          twitter_id?: string | null
+          platform?: string | null
+          platform_id?: string | null
+          platform_username?: string | null
+          platform_handle?: string | null
+          followers?: number
+          platform_verified?: boolean
           profile_image?: string | null
-          follower_count?: number
-          following_count?: number
-          tweet_count?: number
+          insightiq_id?: string | null
+          insightiq_verified?: boolean
+          influence_score?: number | null
+          engagement_rate?: number | null
           is_verified?: boolean
           verification_status?: string
           created_at?: string

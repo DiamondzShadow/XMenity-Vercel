@@ -6,6 +6,11 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 // Create Supabase client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+// Server-side Supabase client function
+export const createServerSupabaseClient = () => {
+  return createClient(supabaseUrl, supabaseAnonKey)
+}
+
 // Database operations for application logic
 export const supabaseOperations = {
   // Token operations

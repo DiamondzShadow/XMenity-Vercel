@@ -199,3 +199,7 @@ export const tokenContract = {
 }
 
 export default web3Utils
+
+// Export individual utility functions for convenience
+export const isValidAddress = web3Utils.isValidAddress
+export const shortenAddress = web3Utils.formatAddress
