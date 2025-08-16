@@ -20,10 +20,8 @@ const nextConfig = {
   // Image domains for external images
   images: {
     domains: [
-      'pbs.twimg.com', // Twitter profile images
-      'abs.twimg.com', // Twitter images
-      'api.insightiq.ai', // InsightIQ images
-      'staging.insightiq.ai', // InsightIQ staging
+              'api.insightiq.ai', // InsightIQ images
+        'staging.insightiq.ai', // InsightIQ staging
       'avatars.githubusercontent.com', // GitHub avatars
       'images.unsplash.com', // Unsplash images
     ],

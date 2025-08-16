@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { 
       username, 
-      platform = "twitter", 
+      platforms = ["twitter"], // Support multiple platforms
       walletAddress,
       tokenData 
     } = body
@@ -20,176 +20,178 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Step 1: Get user data from InsightIQ
-    const insightiqUser = await insightIQ.getUserByUsername(username, platform)
-    
-    if (!insightiqUser) {
-      return NextResponse.json({ 
-        success: false, 
-        error: "User not found on InsightIQ" 
-      }, { status: 404 })
-    }
-
-    // Step 2: Verify influencer eligibility
-    const verification = await insightIQ.verifyInfluencer(username, platform)
+    // Step 1: Get cross-platform verification from InsightIQ
+    const verification = await insightIQ.verifyCrossPlatform(username, platforms)
     
     if (!verification.verified) {
       return NextResponse.json({ 
         success: false, 
-        error: "User does not meet verification criteria",
-        requirements: {
-          minFollowers: 1000,
-          minEngagementRate: 0.01,
-          minInfluenceScore: 50
-        },
-        userMetrics: {
-          followers: insightiqUser.followers,
-          engagementRate: insightiqUser.engagementRate,
-          influenceScore: insightiqUser.influenceScore
-        }
-      }, { status: 403 })
+        error: "User does not meet verification requirements",
+        verification
+      }, { status: 400 })
     }
 
-    // Step 3: Calculate milestone-based tokenomics
-    const tokenomics = calculateMilestoneTokenomics(insightiqUser, verification.tier)
+    // Step 2: Get enhanced user data from primary platform
+    const primaryPlatform = platforms[0] || "twitter"
+    const insightiqUser = await insightIQ.getUserByUsername(username, primaryPlatform)
+    
+    if (!insightiqUser) {
+      return NextResponse.json({ 
+        success: false, 
+        error: "User not found on primary platform" 
+      }, { status: 404 })
+    }
 
-    // Step 4: Create or update user profile with verification data
+    // Step 3: Get AI insights for enhanced verification
+    const aiInsights = await insightIQ.getAIInsights(username, primaryPlatform)
+
+    // Step 4: Get real-time metrics if supported
+    let realTimeMetrics = null
+    try {
+      realTimeMetrics = await insightIQ.getRealTimeMetrics(username, primaryPlatform)
+    } catch (error) {
+      console.log("Real-time metrics not available for", primaryPlatform)
+    }
+
+    // Step 5: Get content analytics
+    const contentAnalytics = await insightIQ.getContentAnalytics(username, primaryPlatform, "30d")
+
+    // Step 6: Create or update user profile with enhanced data
     const userData = {
-      username,
-      platform,
-      insightiq_id: insightiqUser.id,
+      walletAddress: walletAddress.toLowerCase(),
+      displayName: insightiqUser.username,
+      platform: primaryPlatform,
+      platformId: insightiqUser.id,
+      platformUsername: insightiqUser.username,
       followers: insightiqUser.followers,
-      engagement_rate: insightiqUser.engagementRate,
-      influence_score: insightiqUser.influenceScore,
-      tier: verification.tier,
-      verified: true,
-      verified_at: new Date().toISOString(),
-      tokenomics,
-      profile_image: insightiqUser.profileImage,
+      platformVerified: verification.verified,
+      insightiqId: insightiqUser.id,
+      insightiqVerified: true,
+      influenceScore: insightiqUser.influenceScore,
+      engagementRate: insightiqUser.engagementRate,
+      profileImage: insightiqUser.profileImage,
       bio: insightiqUser.bio,
+      
+      // Enhanced verification scores
+      crossPlatformScore: verification.crossPlatformScore,
+      authenticityScore: verification.authenticityScore,
+      brandSafetyScore: verification.brandSafetyScore,
+      tier: verification.tier,
+      
+      // AI insights
+      aiInsights,
+      contentAnalytics,
+      realTimeMetrics,
+      
+      // Multi-platform data
+      verifiedPlatforms: platforms,
+      platformMetrics: insightiqUser.platformMetrics,
+      
+      isVerified: true,
+      verificationLevel: "insightiq_verified"
     }
 
-    // Save user profile to database
-    await supabaseOperations.createUserProfile(walletAddress, userData)
+    // Check if user already exists
+    const existingUser = await supabaseOperations.getUserProfile(walletAddress)
+    
+    let user
+    if (existingUser) {
+      user = await supabaseOperations.updateUserProfile(walletAddress, userData)
+    } else {
+      user = await supabaseOperations.createUserProfile(walletAddress, userData)
+    }
 
-    // Step 5: Generate JWT token with verification data
+    // Step 7: Create JWT token with enhanced claims
+    const jwtSecret = process.env.NEXTAUTH_SECRET || "default-secret"
     const token = jwt.sign(
       { 
-        walletAddress: walletAddress.toLowerCase(),
-        username,
+        walletAddress,
+        username: insightiqUser.username,
+        platform: primaryPlatform,
         verified: true,
         tier: verification.tier,
-        influenceScore: verification.score,
-        tokenomics
+        crossPlatformScore: verification.crossPlatformScore,
+        authenticityScore: verification.authenticityScore,
+        brandSafetyScore: verification.brandSafetyScore,
+        platforms,
+        insightiqId: insightiqUser.id
       },
-      process.env.JWT_SECRET!,
-      { expiresIn: "30d" }
+      jwtSecret,
+      { expiresIn: "24h" }
     )
 
-    // Step 6: If token creation data is provided, validate and prepare for deployment
-    let tokenDeploymentData = null
+    // Step 8: If token data provided, create enhanced token profile
+    let tokenProfile = null
     if (tokenData) {
-      tokenDeploymentData = prepareTokenDeployment(tokenData, insightiqUser, tokenomics)
+      // Calculate enhanced tokenomics based on cross-platform metrics
+      const baseMultiplier = verification.tier === "celebrity" ? 5 : 
+                           verification.tier === "mega" ? 3 :
+                           verification.tier === "macro" ? 2 : 1
+
+      const aiMultiplier = aiInsights?.growthTrends?.predictedGrowth > 20 ? 1.5 : 1
+      const crossPlatformMultiplier = platforms.length > 1 ? 1.3 : 1
+      
+      const enhancedTokenomics = {
+        ...tokenData.tokenomics,
+        baseMultiplier,
+        aiMultiplier,
+        crossPlatformMultiplier,
+        totalMultiplier: baseMultiplier * aiMultiplier * crossPlatformMultiplier,
+        enhancedMetrics: {
+          predictedGrowth: aiInsights?.growthTrends?.predictedGrowth || 0,
+          audienceQuality: verification.authenticityScore || 75,
+          brandSafety: verification.brandSafetyScore || 85,
+          crossPlatformReach: platforms.length
+        }
+      }
+
+      tokenProfile = {
+        id: tokenData.id || `${username}_${primaryPlatform}_token`,
+        name: tokenData.name,
+        symbol: tokenData.symbol,
+        description: tokenData.description,
+        totalSupply: enhancedTokenomics.totalSupply,
+        initialPrice: enhancedTokenomics.initialPrice,
+        creatorWallet: walletAddress,
+        metrics: {
+          followers: insightiqUser.followers,
+          engagementRate: insightiqUser.engagementRate,
+          influenceScore: insightiqUser.influenceScore,
+          tier: verification.tier,
+          crossPlatformScore: verification.crossPlatformScore,
+          authenticityScore: verification.authenticityScore,
+          brandSafetyScore: verification.brandSafetyScore
+        },
+        thresholds: enhancedTokenomics.milestones.map((m: any) => m.holders),
+        weights: enhancedTokenomics.milestones.map((m: any) => m.reward),
+        logoUrl: tokenData.logoUrl || insightiqUser.profileImage,
+        verified: true,
+        insightiqVerified: true,
+        enhancedTokenomics,
+        aiInsights,
+        contentAnalytics,
+        supportedPlatforms: platforms
+      }
     }
 
     return NextResponse.json({
       success: true,
-      user: {
-        walletAddress: walletAddress.toLowerCase(),
-        username,
-        platform,
-        verified: true,
-        tier: verification.tier,
-        influenceScore: verification.score,
-        tokenomics,
-        profileImage: insightiqUser.profileImage,
-        followers: insightiqUser.followers,
-        engagementRate: insightiqUser.engagementRate
-      },
+      user,
       token,
-      tokenDeploymentData
+      verification,
+      aiInsights,
+      contentAnalytics,
+      realTimeMetrics,
+      tokenProfile,
+      platforms: platforms,
+      message: `Successfully verified ${username} across ${platforms.length} platform(s) with InsightIQ`
     })
 
   } catch (error) {
     console.error("InsightIQ verification error:", error)
-    return NextResponse.json({ 
-      success: false, 
-      error: "Verification failed" 
+    return NextResponse.json({
+      success: false,
+      error: "Internal server error during verification"
     }, { status: 500 })
-  }
-}
-
-// Calculate milestone-based tokenomics
-function calculateMilestoneTokenomics(user: any, tier: string) {
-  // Base tokenomics
-  const baseSupply = 1000000
-  const basePrice = 0.01
-
-  // Tier multipliers
-  const tierMultipliers = {
-    nano: { supply: 1, price: 1, rewards: 1 },
-    micro: { supply: 2, price: 1.5, rewards: 1.2 },
-    macro: { supply: 5, price: 2, rewards: 1.5 },
-    mega: { supply: 10, price: 3, rewards: 2 }
-  }
-
-  const multiplier = tierMultipliers[tier as keyof typeof tierMultipliers] || tierMultipliers.nano
-
-  // Calculate metrics-based adjustments
-  const followerBonus = Math.min(user.followers / 10000, 10) // Max 10x bonus
-  const engagementBonus = Math.min(user.engagementRate * 100, 5) // Max 5x bonus
-  const influenceBonus = Math.min(user.influenceScore / 20, 5) // Max 5x bonus
-
-  const totalSupply = Math.floor(
-    baseSupply * multiplier.supply * (1 + followerBonus * 0.1 + engagementBonus * 0.1 + influenceBonus * 0.1)
-  )
-
-  const initialPrice = (basePrice * multiplier.price).toFixed(4)
-
-  // Milestone-based reward structure
-  const milestones = [
-    { holders: 100, reward: 0.05, unlocked: false },
-    { holders: 500, reward: 0.1, unlocked: false },
-    { holders: 1000, reward: 0.15, unlocked: false },
-    { holders: 5000, reward: 0.2, unlocked: false },
-    { holders: 10000, reward: 0.25, unlocked: false }
-  ]
-
-  return {
-    totalSupply,
-    initialPrice,
-    tier,
-    multipliers: {
-      tierMultiplier: multiplier,
-      followerBonus: Math.round(followerBonus * 100) / 100,
-      engagementBonus: Math.round(engagementBonus * 100) / 100,
-      influenceBonus: Math.round(influenceBonus * 100) / 100
-    },
-    milestones,
-    rewardMultiplier: multiplier.rewards,
-    createdAt: new Date()
-  }
-}
-
-// Prepare token deployment data
-function prepareTokenDeployment(tokenData: any, user: any, tokenomics: any) {
-  return {
-    name: tokenData.name || `${user.username} Token`,
-    symbol: tokenData.symbol || user.username.substring(0, 6).toUpperCase(),
-    description: tokenData.description || `Social token for ${user.username}`,
-    totalSupply: tokenomics.totalSupply,
-    initialPrice: tokenomics.initialPrice,
-    creatorWallet: tokenData.creatorWallet,
-    metrics: {
-      followers: user.followers,
-      engagementRate: user.engagementRate,
-      influenceScore: user.influenceScore,
-      tier: tokenomics.tier
-    },
-    thresholds: tokenomics.milestones.map((m: any) => m.holders),
-    weights: tokenomics.milestones.map((m: any) => m.reward),
-    logoUrl: tokenData.logoUrl || user.profileImage,
-    verified: true,
-    insightiqVerified: true
   }
 }
